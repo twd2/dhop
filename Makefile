@@ -2,10 +2,10 @@
 all: naive wrapper.so
 
 naive: naive.c
-	gcc -Wall naive.c -o naive
+	gcc -O2 -Wall naive.c -o naive
 
 wrapper.so: wrapper.c
-	gcc -Wall -shared wrapper.c -o wrapper.so -ldl
+	gcc -O2 -Wall -fno-stack-protector -shared wrapper.c -o wrapper.so -ldl
 
 .PHONY: test
 test: all

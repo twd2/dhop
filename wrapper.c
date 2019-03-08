@@ -36,7 +36,7 @@ static void *boot_realloc(void *ptr, size_t size);
 static void boot_free(void *ptr);
 
 #ifdef FORK_SERVER
-static void fork_server();
+static void fork_server(void);
 #endif
 
 static char initialized = 0;
@@ -48,7 +48,7 @@ static void *(*orig_calloc)(size_t num, size_t size) = boot_calloc;
 static void *(*orig_realloc)(void *ptr, size_t size) = boot_realloc;
 static void (*orig_free)(void *ptr) = boot_free;
 
-static void init()
+static void init(void)
 {
   initialized = 1;
   orig_malloc = dlsym(RTLD_NEXT, "malloc");
@@ -64,8 +64,8 @@ static void init()
 #endif
 }
 
-static void ctor() __attribute__((constructor));
-static void ctor()
+static void ctor(void) __attribute__((constructor));
+static void ctor(void)
 {
   init();
 }
@@ -146,7 +146,7 @@ static void read_leftovers(int fd)
 } 
 
 #ifdef FORK_SERVER
-static void fork_server()
+static void fork_server(void)
 {
   packet_t packet = { .type = TYPE_READY, .arg1 = 0, .arg2 = 0, .ret = 0 };
   send_packet(&packet);
