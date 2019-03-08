@@ -7,8 +7,9 @@ import signal
 import time
 import os
 import os.path
-import fcntl
 import pty
+
+import utils
 
 INSPECT_FD = 3
 SERVER_FD  = 4
@@ -21,24 +22,6 @@ TYPE_FREE     = 5
 TYPE_WAIT     = 6
 SIZEOF_PACKET = 32
 
-def get_nonblock(fd):
-  flags = fcntl.fcntl(fd, fcntl.F_GETFL, 0)
-  return bool(flags & os.O_NONBLOCK)
-
-def set_nonblock(fd, nonblock):
-  flags = fcntl.fcntl(fd, fcntl.F_GETFL, 0)
-  fcntl.fcntl(fd, fcntl.F_SETFL, (flags & ~os.O_NONBLOCK) | (os.O_NONBLOCK if nonblock else 0))
-
-def read_leftovers(fd):
-  saved_flags = fcntl.fcntl(fd, fcntl.F_GETFL, 0)
-  fcntl.fcntl(fd, fcntl.F_SETFL, saved_flags | os.O_NONBLOCK)
-  try:
-    while len(os.read(fd, 4096)) > 0:
-      pass
-  except BlockingIOError:
-    pass
-  fcntl.fcntl(fd, fcntl.F_SETFL, saved_flags)
-
 def read_packet(fd):
   buff = os.read(fd, SIZEOF_PACKET)
   return struct.unpack('<QQQQ', buff)
@@ -48,7 +31,6 @@ def start_fork_server(args):
   server_fd_r, server_fd_w = os.pipe2(0)
   stdin_fd_r, stdin_fd_w = os.pipe2(0)
   stdout_fd_r, stdout_fd_w = os.pipe2(0)
-  stderr_fd_r, stderr_fd_w = os.pipe2(0)
   server_pid = os.fork()
   if not server_pid:
     # child
@@ -66,18 +48,15 @@ def start_fork_server(args):
     if stdin_fd_r != pty.STDIN_FILENO:
       os.close(stdin_fd_r)
     os.dup2(stdout_fd_w, pty.STDOUT_FILENO)
-    if stdout_fd_w != pty.STDOUT_FILENO:
+    if stdout_fd_w != pty.STDOUT_FILENO and stdout_fd_w != pty.STDERR_FILENO:
       os.close(stdout_fd_w)
-    os.dup2(stderr_fd_w, pty.STDERR_FILENO)
-    if stderr_fd_w != pty.STDERR_FILENO:
-      os.close(stderr_fd_w)
     os.execve(args[0], args,
               {**os.environ,
                'LD_PRELOAD': os.path.dirname(os.path.realpath(__file__)) + '/wrapper.so'})
     assert(False)
   else:
     # parent
-    return server_pid, inspect_fd_r, server_fd_w, stdin_fd_w, stdout_fd_r, stderr_fd_r
+    return server_pid, inspect_fd_r, server_fd_w, stdin_fd_w, stdout_fd_r
 
 async def main():
   if len(sys.argv) < 2:
@@ -86,7 +65,7 @@ async def main():
   #await asyncio.sleep(1)
   print('start')
   server_pid, inspect_fd, server_fd, \
-    stdin_fd, stdout_fd, stderr_fd = start_fork_server(sys.argv[1:])
+    stdin_fd, stdout_fd = start_fork_server(sys.argv[1:])
   print('waiting for fork server... ', end='')
   sys.stdout.flush()
   type, _, _, _ = read_packet(inspect_fd)
@@ -120,9 +99,8 @@ async def main():
       elif type == TYPE_WAIT:
         status = ret
         break
-    read_leftovers(inspect_fd)
-    read_leftovers(stdout_fd)
-    read_leftovers(stderr_fd)
+    utils.read_leftovers(inspect_fd)
+    utils.read_leftovers(stdout_fd)
     #print('status', status)
     if os.WIFEXITED(status):
       #print('exit, ret = {}!'.format(os.WEXITSTATUS(status)))
