@@ -51,6 +51,8 @@ static void (*orig_free)(void *ptr) = boot_free;
 static void init(void)
 {
   initialized = 1;
+  setvbuf(stdout, NULL, _IONBF, 0);
+  setvbuf(stderr, NULL, _IONBF, 0);
   orig_malloc = dlsym(RTLD_NEXT, "malloc");
   orig_calloc = dlsym(RTLD_NEXT, "calloc");
   orig_realloc = dlsym(RTLD_NEXT, "realloc");

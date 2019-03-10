@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 
 import asyncio
-import sys
-import struct
-import signal
-import time
 import os
 import os.path
 import pty
+import signal
+import struct
+import sys
+import time
 
 import utils
 
@@ -20,11 +20,12 @@ TYPE_CALLOC   = 3
 TYPE_REALLOC  = 4
 TYPE_FREE     = 5
 TYPE_WAIT     = 6
-SIZEOF_PACKET = 32
+STRUCT_PACKET = '<QQQQ'
+SIZEOF_PACKET = len(struct.pack(STRUCT_PACKET, 0, 0, 0, 0))
 
 def read_packet(fd):
   buff = os.read(fd, SIZEOF_PACKET)
-  return struct.unpack('<QQQQ', buff)
+  return struct.unpack(STRUCT_PACKET, buff)
 
 def start_fork_server(args):
   inspect_fd_r, inspect_fd_w = os.pipe2(0)
@@ -48,6 +49,7 @@ def start_fork_server(args):
     if stdin_fd_r != pty.STDIN_FILENO:
       os.close(stdin_fd_r)
     os.dup2(stdout_fd_w, pty.STDOUT_FILENO)
+    os.dup2(stdout_fd_w, pty.STDERR_FILENO)
     if stdout_fd_w != pty.STDOUT_FILENO and stdout_fd_w != pty.STDERR_FILENO:
       os.close(stdout_fd_w)
     os.execve(args[0], args,
@@ -86,6 +88,7 @@ async def main():
         pass
     #os.kill(pid, signal.SIGKILL)
     os.write(stdin_fd, b'4\n1\n')
+    #await asyncio.sleep(1)
     while True:
       type, arg1, arg2, ret = read_packet(inspect_fd)
       if type == TYPE_MALLOC:
@@ -95,7 +98,7 @@ async def main():
       elif type == TYPE_REALLOC:
         print('[INFO] realloc({:#x}, {}) = {:#x}'.format(arg1, arg2, ret))
       elif type == TYPE_FREE:
-        print('[INFO] free({:#x})'.format(arg1))
+        pass #print('[INFO] free({:#x})'.format(arg1))
       elif type == TYPE_WAIT:
         status = ret
         break
