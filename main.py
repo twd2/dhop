@@ -89,16 +89,19 @@ async def main():
     #os.kill(pid, signal.SIGKILL)
     os.write(stdin_fd, b'4\n1\n')
     #await asyncio.sleep(1)
+    ops = []
     while True:
       type, arg1, arg2, ret = read_packet(inspect_fd)
-      if type == TYPE_MALLOC:
-        pass #print('[INFO] malloc({}) = {:#x}'.format(arg1, ret))
-      elif type == TYPE_CALLOC:
-        print('[INFO] calloc({}) = {:#x}'.format(arg1, ret))
-      elif type == TYPE_REALLOC:
-        print('[INFO] realloc({:#x}, {}) = {:#x}'.format(arg1, arg2, ret))
-      elif type == TYPE_FREE:
-        pass #print('[INFO] free({:#x})'.format(arg1))
+      if type in [TYPE_MALLOC, TYPE_CALLOC, TYPE_REALLOC, TYPE_FREE]:
+        ops.append((type, arg1, arg2, ret))
+        if type == TYPE_MALLOC:
+          print('[INFO] malloc({}) = {:#x}'.format(arg1, ret))
+        elif type == TYPE_CALLOC:
+          print('[INFO] calloc({}) = {:#x}'.format(arg1, ret))
+        elif type == TYPE_REALLOC:
+          print('[INFO] realloc({:#x}, {}) = {:#x}'.format(arg1, arg2, ret))
+        elif type == TYPE_FREE:
+          print('[INFO] free({:#x})'.format(arg1))
       elif type == TYPE_WAIT:
         status = ret
         break
