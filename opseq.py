@@ -53,7 +53,6 @@ def insert_free(ops, pos, ref=None):
       ref_set.add(i)
     elif ops[i][0] == TYPE_FREE:
       ref_set.remove(ops[i][1])
-  print(ref_set)
   if not ref_set:  # nothing can be free
     return ops
   if ref == None:
@@ -73,6 +72,7 @@ def __remove_adjust(ops, pos):
 
 def remove_free_by_ref(ops, ref):
   pair_free = None
+  # TODO: optimize
   for i, op in enumerate(ops):
     if op[0] == TYPE_FREE and op[1] == ref:
       pair_free = i
@@ -91,25 +91,41 @@ def remove_op(ops, pos):
   return ops
 
 
-def print_ops(ops):
+def mutate(ops):
+  t = random.randint(0, 2)
+  if t == 0:
+    pos = random.randint(0, len(ops))
+    ops = insert_malloc(ops, pos)
+  elif t == 1:
+    pos = random.randint(0, len(ops))
+    ops = insert_free(ops, pos)
+  else:
+    pos = random.randint(0, len(ops) - 1)
+    ops = remove_op(ops, pos)
+  return ops
+
+
+def dump_ops(fd, ops):
   count = 0
   for i, op in enumerate(ops):
-    print('// {} allocated chunks'.format(count))
+    fd.write('// {} allocated chunks\n'.format(count))
     if op[0] == TYPE_MALLOC:
-      print('ptr{} = malloc({});'.format(i, op[1]))
+      fd.write('ptr{} = malloc({});\n'.format(i, op[1]))
       count += 1
     elif op[0] == TYPE_FREE:
-      print('free(ptr{});'.format(op[1]))
+      fd.write('free(ptr{});\n'.format(op[1]))
       count -= 1
-  print('// {} allocated chunks'.format(count))
+  fd.write('// {} allocated chunks\n'.format(count))
 
 
 if __name__ == '__main__':
   ops = rand(20, 0.5)
-  print_ops(ops)
-  print('------')
-  #insert_malloc(ops, 10, 777)
+  with open('before.c', 'w') as f:
+    dump_ops(f, ops)
+  mutate(ops)
+  #remove_op(ops, 19)
   #remove_op(ops, 2)
   #insert_free(ops, 10)
-  insert_free(ops, 10)
-  print_ops(ops)
+  #insert_free(ops, 10)
+  with open('after.c', 'w') as f:
+    dump_ops(f, ops)
