@@ -5,27 +5,12 @@ import os
 import os.path
 import pty
 import signal
-import struct
 import sys
 import time
 
-import utils
+from utils import *
+from spec.naive import NaiveAllocator
 
-INSPECT_FD = 3
-SERVER_FD  = 4
-TYPE_READY    = 0
-TYPE_PID      = 1
-TYPE_MALLOC   = 2
-TYPE_CALLOC   = 3
-TYPE_REALLOC  = 4
-TYPE_FREE     = 5
-TYPE_WAIT     = 6
-STRUCT_PACKET = '<QQQQ'
-SIZEOF_PACKET = len(struct.pack(STRUCT_PACKET, 0, 0, 0, 0))
-
-def read_packet(fd):
-  buff = os.read(fd, SIZEOF_PACKET)
-  return struct.unpack(STRUCT_PACKET, buff)
 
 def start_fork_server(args):
   inspect_fd_r, inspect_fd_w = os.pipe2(0)
@@ -60,6 +45,7 @@ def start_fork_server(args):
     # parent
     return server_pid, inspect_fd_r, server_fd_w, stdin_fd_w, stdout_fd_r
 
+
 async def main():
   if len(sys.argv) < 2:
     print('Usage: main.py filename arguments...')
@@ -87,15 +73,23 @@ async def main():
         # print('[WARN] something wrong')
         pass
     #os.kill(pid, signal.SIGKILL)
+    allocator = NaiveAllocator()
+    allocator.attach(inspect_fd, stdin_fd, stdout_fd)
+    allocator.init()
+    allocator.free(0, 1)
+    print('here')
+    """
     os.write(stdin_fd, b'4\n1\n')
-    #await asyncio.sleep(1)
+    await asyncio.sleep(1)
+    print(unpack_packets(read_leftovers(inspect_fd)))
+    print(read_leftovers(stdout_fd))
     ops = []
     while True:
       type, arg1, arg2, ret = read_packet(inspect_fd)
       if type in [TYPE_MALLOC, TYPE_CALLOC, TYPE_REALLOC, TYPE_FREE]:
         ops.append((type, arg1, arg2, ret))
         if type == TYPE_MALLOC:
-          print('[INFO] malloc({}) = {:#x}'.format(arg1, ret))
+          pass # print('[INFO] malloc({}) = {:#x}'.format(arg1, ret))
         elif type == TYPE_CALLOC:
           print('[INFO] calloc({}) = {:#x}'.format(arg1, ret))
         elif type == TYPE_REALLOC:
@@ -105,8 +99,9 @@ async def main():
       elif type == TYPE_WAIT:
         status = ret
         break
-    utils.read_leftovers(inspect_fd)
-    utils.read_leftovers(stdout_fd)
+    """
+    read_leftovers(inspect_fd)
+    read_leftovers(stdout_fd)
     #print('status', status)
     if os.WIFEXITED(status):
       #print('exit, ret = {}!'.format(os.WEXITSTATUS(status)))
@@ -123,6 +118,7 @@ async def main():
   os.waitpid(server_pid, 0)
   print('done')
   return 0
+
 
 if __name__ == '__main__':
   exit(asyncio.get_event_loop().run_until_complete(main()))

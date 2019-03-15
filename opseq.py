@@ -1,9 +1,15 @@
+import collections
 import random
+
+from utils import *
 
 # Generate and modify heap op sequences, keeping the constraints.
 
-TYPE_MALLOC   = 2
-TYPE_FREE     = 5
+HeapOp = collections.namedtuple('HeapOp', ['type', 'i', 'arg'])
+
+
+def rand_i():
+  return random.randint(0, 1 << 20)
 
 
 def rand_size():
@@ -21,11 +27,11 @@ def rand(length, malloc_ratio=0.5):
                           [malloc_ratio, 1.0 - malloc_ratio])[0]
     if type == TYPE_MALLOC or not ref_set:
       ref_set.add(i)
-      ops.append((TYPE_MALLOC, rand_size()))
+      ops.append(HeapOp(TYPE_MALLOC, rand_i(), rand_size()))
     elif type == TYPE_FREE:
       to_be_free = random.choice(list(ref_set))
       ref_set.remove(to_be_free)
-      ops.append((TYPE_FREE, to_be_free))
+      ops.append(HeapOp(TYPE_FREE, rand_i(), to_be_free))
     else:
       assert(False)
   return ops
@@ -33,40 +39,46 @@ def rand(length, malloc_ratio=0.5):
 
 def __insert_adjust(ops, pos):
   for i in range(pos, len(ops)):
-    if ops[i][0] == TYPE_FREE and ops[i][1] >= pos:
-      ops[i] = (ops[i][0], ops[i][1] + 1)
+    if ops[i].type == TYPE_FREE and ops[i].arg >= pos:
+      ops[i] = HeapOp(ops[i].type, ops[i].i, ops[i].arg + 1)
   return ops
 
 
-def insert_malloc(ops, pos, size=None):
+def insert_malloc(ops, pos, i=None, size=None):
   ops = __insert_adjust(ops, pos)
+  if i == None:
+    i = rand_i()
   if size == None:
     size = rand_size()
-  ops.insert(pos, (TYPE_MALLOC, size))
+  ops.insert(pos, HeapOp(TYPE_MALLOC, i, size))
   return ops
 
 
-def insert_free(ops, pos, ref=None):
+def insert_free(ops, pos, i=None, ref=None):
   ref_set = set()
   for i in range(pos):
-    if ops[i][0] == TYPE_MALLOC:
+    if ops[i].type == TYPE_MALLOC:
       ref_set.add(i)
-    elif ops[i][0] == TYPE_FREE:
-      ref_set.remove(ops[i][1])
+    elif ops[i].type == TYPE_FREE:
+      ref_set.remove(ops[i].arg)
+    else:
+      assert(False)
   if not ref_set:  # nothing can be free
     return ops
+  if i == None:
+    i = rand_i()
   if ref == None:
     ref = random.choice(list(ref_set))
   ops = remove_free_by_ref(ops, ref)  # remove previous free op
   ops = __insert_adjust(ops, pos)
-  ops.insert(pos, (TYPE_FREE, ref))
+  ops.insert(pos, HeapOp(TYPE_FREE, i, ref))
   return ops
 
 
 def __remove_adjust(ops, pos):
   for i in range(pos, len(ops)):
-    if ops[i][0] == TYPE_FREE and ops[i][1] >= pos:
-      ops[i] = (ops[i][0], ops[i][1] - 1)
+    if ops[i].type == TYPE_FREE and ops[i].arg >= pos:
+      ops[i] = HeapOp(ops[i].type, ops[i].i, ops[i].arg - 1)
   return ops
 
 
@@ -74,7 +86,7 @@ def remove_free_by_ref(ops, ref):
   pair_free = None
   # TODO: optimize
   for i, op in enumerate(ops):
-    if op[0] == TYPE_FREE and op[1] == ref:
+    if op.type == TYPE_FREE and op.arg == ref:
       pair_free = i
       break
   if pair_free != None:
@@ -83,7 +95,7 @@ def remove_free_by_ref(ops, ref):
 
 
 def remove_op(ops, pos):
-  if ops[pos][0] == TYPE_MALLOC:
+  if ops[pos].type == TYPE_MALLOC:
     # find and remove corresponding free, if exists
     ops = remove_free_by_ref(ops, pos)
   ops = __remove_adjust(ops, pos)
@@ -109,12 +121,14 @@ def dump_ops(fd, ops):
   count = 0
   for i, op in enumerate(ops):
     fd.write('// {} allocated chunks\n'.format(count))
-    if op[0] == TYPE_MALLOC:
-      fd.write('ptr{} = malloc({});\n'.format(i, op[1]))
+    if op.type == TYPE_MALLOC:
+      fd.write('ptr{} = malloc{}({});\n'.format(i, op.i, op.arg))
       count += 1
-    elif op[0] == TYPE_FREE:
-      fd.write('free(ptr{});\n'.format(op[1]))
+    elif op.type == TYPE_FREE:
+      fd.write('free{}(ptr{});\n'.format(op.i, op.arg))
       count -= 1
+    else:
+      assert(False)
   fd.write('// {} allocated chunks\n'.format(count))
 
 
