@@ -1,10 +1,16 @@
 import functools
 import os
+import select
 
 import opseq
 from utils import *
 
 # Base class of allocators' spec.
+
+
+class ExitingError(Exception):
+  pass
+
 
 class AbstractAllocator():
   malloc_ops = ()
@@ -16,27 +22,55 @@ class AbstractAllocator():
     self.inspect_fd = 3
     self.stdin_fd = 1  # ???
     self.stdout_fd = 0  # ???
+    self.epoll = None
     self.buff = b''
     self.allocator_trace = []
     self.full_trace = [] # TODO
 
-  def attach(self, inspect_fd, stdin_fd, stdout_fd):
+  def attach(self, inspect_fd, stdin_fd, stdout_fd, epoll):
     # attach this allocator spec to an executing process
     self.inspect_fd = inspect_fd
     self.stdin_fd = stdin_fd
     self.stdout_fd = stdout_fd
+    self.epoll = epoll
 
   def update_allocator_trace(self):
-    self.allocator_trace.extend(unpack_packets(read_leftovers(self.inspect_fd)))
+    trace = unpack_packets(read_leftovers(self.inspect_fd))
+    self.allocator_trace.extend(trace)
+    for type, _, _, _ in trace:
+      if type == TYPE_EXIT:
+        #print('[WARN] target problem exited!')
+        raise ExitingError()
 
   def init(self):
     self._init()
     self.update_allocator_trace()
 
+  def fini(self):
+    self._fini()
+    try:
+      while True:
+        events = self.epoll.poll()
+        if (self.stdout_fd, select.EPOLLIN) in events:
+          read_leftovers(self.stdout_fd)
+        if (self.inspect_fd, select.EPOLLIN) in events:
+          self.update_allocator_trace()
+    except ExitingError as e:
+      pass
+
+  def _read_stdout(self, length):
+    while True:
+      events = self.epoll.poll()
+      if (self.inspect_fd, select.EPOLLIN) in events:
+        self.update_allocator_trace()
+      if (self.stdout_fd, select.EPOLLIN) in events:
+        break
+    return os.read(self.stdout_fd, length)
+
   def read_until(self, u):
     pos = self.buff.find(u)
     while pos < 0:
-      chunk = os.read(self.stdout_fd, 4096)
+      chunk = self._read_stdout(4096)
       if not chunk:
         return None
       self.buff += chunk
@@ -49,7 +83,7 @@ class AbstractAllocator():
     remaining = n
     data = b''
     while remaining:
-      chunk = os.read(self.stdout_fd, remaining)
+      chunk = self._read_stdout(remaining)
       if not chunk:
         return data
       data += chunk

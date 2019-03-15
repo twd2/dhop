@@ -21,7 +21,7 @@
 #define TYPE_CALLOC   3
 #define TYPE_REALLOC  4
 #define TYPE_FREE     5
-#define TYPE_WAIT     6
+#define TYPE_EXIT     6
 
 typedef struct
 {
@@ -184,7 +184,7 @@ static void fork_server(void)
       // read leftovers in stdin
       read_leftovers(STDIN_FILENO);
       // send status to runner
-      packet.type = TYPE_WAIT;
+      packet.type = TYPE_EXIT;
       packet.ret = status;
       send_packet(&packet);
     }

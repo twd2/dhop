@@ -117,19 +117,19 @@ def mutate(ops):
   return ops
 
 
-def dump_ops(fd, ops):
+def dump_ops(fo, ops):
   count = 0
   for i, op in enumerate(ops):
-    fd.write('// {} allocated chunks\n'.format(count))
+    fo.write('// {} allocated chunks\n'.format(count))
     if op.type == TYPE_MALLOC:
-      fd.write('ptr{} = malloc{}({});\n'.format(i, op.i, op.arg))
+      fo.write('ptr{} = malloc{}({});\n'.format(i, op.i, op.arg))
       count += 1
     elif op.type == TYPE_FREE:
-      fd.write('free{}(ptr{});\n'.format(op.i, op.arg))
+      fo.write('free{}(ptr{});\n'.format(op.i, op.arg))
       count -= 1
     else:
       assert(False)
-  fd.write('// {} allocated chunks\n'.format(count))
+  fo.write('// {} allocated chunks\n'.format(count))
 
 
 if __name__ == '__main__':

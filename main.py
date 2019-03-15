@@ -4,12 +4,15 @@ import asyncio
 import os
 import os.path
 import pty
+import select
 import signal
 import sys
 import time
 
 from utils import *
+import allocator
 from spec.naive import NaiveAllocator
+import trace
 
 
 def start_fork_server(args):
@@ -50,12 +53,18 @@ async def main():
   if len(sys.argv) < 2:
     print('Usage: main.py filename arguments...')
     return
-  #await asyncio.sleep(1)
   print('start')
   server_pid, inspect_fd, server_fd, \
     stdin_fd, stdout_fd = start_fork_server(sys.argv[1:])
   print('waiting for fork server... ', end='')
   sys.stdout.flush()
+  # Create an epoll object for 2 fds.
+  fds = [inspect_fd, stdout_fd]
+  epoll = select.epoll(len(fds))
+  for fd in fds:
+    set_nonblock(fd, True)
+    epoll.register(fd, select.EPOLLIN)
+  assert(epoll.poll() == [(inspect_fd, select.EPOLLIN)])
   type, _, _, _ = read_packet(inspect_fd)
   assert(type == TYPE_READY)
   print('ready!')
@@ -64,7 +73,11 @@ async def main():
   crashes = 0
   while True:
     os.write(server_fd, b'A')
+    # FIXME: ugly
     while True:
+      events = []
+      while (inspect_fd, select.EPOLLIN) not in events:
+        events = epoll.poll()
       type, _, _, pid = read_packet(inspect_fd)
       if type == TYPE_PID:
         #print('[INFO] pid', pid)
@@ -73,41 +86,17 @@ async def main():
         # print('[WARN] something wrong')
         pass
     #os.kill(pid, signal.SIGKILL)
-    allocator = NaiveAllocator()
-    allocator.attach(inspect_fd, stdin_fd, stdout_fd)
-    allocator.init()
-    allocator.free(0, 1)
-    print('here')
-    """
-    os.write(stdin_fd, b'4\n1\n')
-    await asyncio.sleep(1)
-    print(unpack_packets(read_leftovers(inspect_fd)))
-    print(read_leftovers(stdout_fd))
-    ops = []
-    while True:
-      type, arg1, arg2, ret = read_packet(inspect_fd)
-      if type in [TYPE_MALLOC, TYPE_CALLOC, TYPE_REALLOC, TYPE_FREE]:
-        ops.append((type, arg1, arg2, ret))
-        if type == TYPE_MALLOC:
-          pass # print('[INFO] malloc({}) = {:#x}'.format(arg1, ret))
-        elif type == TYPE_CALLOC:
-          print('[INFO] calloc({}) = {:#x}'.format(arg1, ret))
-        elif type == TYPE_REALLOC:
-          print('[INFO] realloc({:#x}, {}) = {:#x}'.format(arg1, arg2, ret))
-        elif type == TYPE_FREE:
-          print('[INFO] free({:#x})'.format(arg1))
-      elif type == TYPE_WAIT:
-        status = ret
-        break
-    """
+    ator = NaiveAllocator()
+    ator.attach(inspect_fd, stdin_fd, stdout_fd, epoll)
+    try:
+      ator.init()
+      ator.free(0, 1)
+      ator.fini()
+    except allocator.ExitingError as e:
+      crashes += 1
+    trace.dump_trace(sys.stdout, ator.allocator_trace)
     read_leftovers(inspect_fd)
     read_leftovers(stdout_fd)
-    #print('status', status)
-    if os.WIFEXITED(status):
-      #print('exit, ret = {}!'.format(os.WEXITSTATUS(status)))
-      pass
-    else:
-      crashes += 1
     count += 1
     current_time = time.time()
     if current_time - last_time >= 1.0:

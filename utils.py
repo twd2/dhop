@@ -11,7 +11,7 @@ TYPE_MALLOC   = 2
 TYPE_CALLOC   = 3
 TYPE_REALLOC  = 4
 TYPE_FREE     = 5
-TYPE_WAIT     = 6
+TYPE_EXIT     = 6
 STRUCT_PACKET = '<QQQQ'
 SIZEOF_PACKET = len(struct.pack(STRUCT_PACKET, 0, 0, 0, 0))
 
@@ -41,9 +41,10 @@ def set_nonblock(fd, nonblock):
   fcntl.fcntl(fd, fcntl.F_SETFL, (flags & ~os.O_NONBLOCK) | (os.O_NONBLOCK if nonblock else 0))
 
 
-def read_leftovers(fd):
-  saved_flags = fcntl.fcntl(fd, fcntl.F_GETFL, 0)
-  fcntl.fcntl(fd, fcntl.F_SETFL, saved_flags | os.O_NONBLOCK)
+def read_leftovers(fd, is_already_nonblock=False):
+  if not is_already_nonblock:
+    saved_flags = fcntl.fcntl(fd, fcntl.F_GETFL, 0)
+    fcntl.fcntl(fd, fcntl.F_SETFL, saved_flags | os.O_NONBLOCK)
   buff = b''
   try:
     while True:
@@ -53,6 +54,7 @@ def read_leftovers(fd):
       buff += chunk
   except BlockingIOError:
     pass
-  fcntl.fcntl(fd, fcntl.F_SETFL, saved_flags)
+  if not is_already_nonblock:
+    fcntl.fcntl(fd, fcntl.F_SETFL, saved_flags)
   return buff
 

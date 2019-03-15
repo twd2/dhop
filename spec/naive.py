@@ -11,6 +11,9 @@ class NaiveAllocator(allocator.AbstractAllocator):
   def _init(self):
     self.read_until(b'op? ')
 
+  def _fini(self):
+    self.write(b'5\n0\n')
+
   def malloc1(self, size):
     self.write(b'1\n' + str(size).encode() + b'\n')
     self.read_until(b'0x')
