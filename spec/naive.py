@@ -5,8 +5,6 @@ import allocator
 class NaiveAllocator(allocator.AbstractAllocator):
   def __init__(self):
     super().__init__()
-    #self.init()
-    #self.free(0, self.malloc(0, 32))
 
   def _init(self):
     self.read_until(b'op? ')

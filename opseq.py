@@ -134,12 +134,12 @@ def dump_ops(fo, ops):
 
 if __name__ == '__main__':
   ops = rand(20, 0.5)
-  with open('before.c', 'w') as f:
+  with open('results/before.c', 'w') as f:
     dump_ops(f, ops)
   mutate(ops)
   #remove_op(ops, 19)
   #remove_op(ops, 2)
   #insert_free(ops, 10)
   #insert_free(ops, 10)
-  with open('after.c', 'w') as f:
+  with open('results/after.c', 'w') as f:
     dump_ops(f, ops)

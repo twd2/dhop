@@ -2,3 +2,4 @@ naive
 *.so
 *.o
 __pycache__
+results
