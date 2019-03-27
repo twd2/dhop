@@ -7,7 +7,7 @@ import sys
 from utils import *
 
 
-# Fork Server - python side
+# Fork Server - client side
 class ForkServer():
   def __init__(self, args):
     inspect_fd_r, inspect_fd_w = os.pipe2(0)
@@ -71,7 +71,7 @@ class ForkServer():
   def fork(self):
     read_leftovers(self.inspect_fd, is_already_nonblock=True)
     read_leftovers(self.stdout_fd, is_already_nonblock=True)
-    os.write(self.server_fd, b'A')
+    os.write(self.server_fd, b'A')  # an arbitrary char
     # FIXME: ugly
     while True:
       events = []

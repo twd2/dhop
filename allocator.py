@@ -32,7 +32,7 @@ class AbstractAllocator():
     self.full_trace = [] # TODO
     self.input_trace = []
     self.a_addr = 0x0
-    self.b_addr = 0xffffffff
+    self.b_addr = 0xffffffffffffffff
 
   def update_allocator_trace(self):
     trace = unpack_packets(read_leftovers(self.inspect_fd, is_already_nonblock=True))

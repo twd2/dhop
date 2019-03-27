@@ -24,10 +24,16 @@ def trace_to_layout(trace):
   return layout
 
 
-def dump_layout(fo, layout):
+def dump_layout(fo, layout, a_addr=None, b_addr=None):
   base_addr = layout[0][0] & ~0xfff
   for begin, size in layout:
-    fo.write('[0x{:x}, 0x{:x} + {}]\n'.format(begin - base_addr, begin - base_addr, size))
+    if begin == a_addr:
+      marker = 'A: '
+    elif begin == b_addr:
+      marker = 'B: '
+    else:
+      marker = '   '
+    fo.write('{}[0x{:x}, 0x{:x} + {})\n'.format(marker, begin - base_addr, begin - base_addr, size))
 
 
 def dump_trace(fo, trace):
