@@ -1,15 +1,33 @@
 import os
+import signal
 
 from utils import *
 
 
 def trace_to_layout(trace):
   regions = {}
-  #TODO
+  for type, arg1, arg2, ret in trace:
+    if type == TYPE_MALLOC:
+      regions[ret] = arg1
+    elif type == TYPE_CALLOC:
+      regions[ret] = arg1 * arg2
+    elif type == TYPE_REALLOC:
+      del regions[arg1]
+      regions[ret] = arg2
+    elif type == TYPE_FREE:
+      del regions[arg1]
+    elif type == TYPE_EXIT:
+      pass
+    else:
+      assert(False)
+  layout = list(sorted(regions.items()))
+  return layout
 
 
 def dump_layout(fo, layout):
-  pass
+  base_addr = layout[0][0]
+  for begin, size in layout:
+    fo.write('[0x{:x}, 0x{:x} + {}]\n'.format(begin - base_addr, begin - base_addr, size))
 
 
 def dump_trace(fo, trace):
