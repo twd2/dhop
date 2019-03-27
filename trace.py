@@ -25,7 +25,7 @@ def trace_to_layout(trace):
 
 
 def dump_layout(fo, layout):
-  base_addr = layout[0][0]
+  base_addr = layout[0][0] & ~0xfff
   for begin, size in layout:
     fo.write('[0x{:x}, 0x{:x} + {}]\n'.format(begin - base_addr, begin - base_addr, size))
 

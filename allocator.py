@@ -6,13 +6,12 @@ import signal
 import opseq
 from utils import *
 
-# Base class of allocators' spec.
-
 
 class ExitingError(Exception):
   pass
 
 
+# Base class of allocators' spec.
 class AbstractAllocator():
   malloc_ops = ()
   free_ops = ()

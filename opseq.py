@@ -4,11 +4,11 @@ import random
 
 from utils import *
 
+
 # Generate and modify heap op sequences, keeping the constraints.
 
+
 HeapOp = collections.namedtuple('HeapOp', ['type', 'i', 'arg'])
-
-
 HeapOpType = enum.Enum('HeapOpType', ('Alloc', 'Free', 'A', 'B'))
 
 
