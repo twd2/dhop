@@ -23,11 +23,11 @@ def dump_trace(fo, trace):
     elif type == TYPE_FREE:
       fo.write('free({:#x})\n'.format(arg1))
     elif type == TYPE_EXIT:
-      if os.WIFEXITED(ret):
-        fo.write('program exited, code: {}\n'.format(os.WEXITSTATUS(ret)))
+      if os.WIFSIGNALED(ret) and os.WTERMSIG(signal.SIGKILL):
+        fo.write('process killed, code: {}\n'.format(ret))
+      elif os.WIFEXITED(ret):
+        fo.write('process exited, code: {}\n'.format(os.WEXITSTATUS(ret)))
       else:
-        fo.write('problem crashed, code: {}\n'.format(ret))
+        fo.write('process crashed, code: {}\n'.format(ret))
     else:
       assert(False)
-
-

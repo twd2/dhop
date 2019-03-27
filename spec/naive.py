@@ -20,10 +20,9 @@ class NaiveAllocator(allocator.AbstractAllocator):
     return ref
 
   def free1(self, ref):
-    self.write(b'4\n' + str(ref).encode() + b'\n')
+    self.write(b'4\n' + hex(ref).encode() + b'\n')
     self.read_until(b'op? ')
     return
 
   malloc_ops = (malloc1,)
   free_ops = (free1,)
-
