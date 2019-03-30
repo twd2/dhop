@@ -15,6 +15,8 @@ TYPE_EXIT     = 6
 STRUCT_PACKET = '<QQQQ'
 SIZEOF_PACKET = len(struct.pack(STRUCT_PACKET, 0, 0, 0, 0))
 
+TYPE_STDIN    = 10000
+TYPE_STDOUT   = 10001
 
 def read_packet(fd):
   buff = os.read(fd, SIZEOF_PACKET)

@@ -46,6 +46,10 @@ def dump_trace(fo, trace):
       fo.write('realloc({:#x}, {}) = {:#x}\n'.format(arg1, arg2, ret))
     elif type == TYPE_FREE:
       fo.write('free({:#x})\n'.format(arg1))
+    elif type == TYPE_STDIN:
+      fo.write('read(...) = {}\n'.format(arg1))
+    elif type == TYPE_STDOUT:
+      fo.write('write({})\n'.format(arg1))
     elif type == TYPE_EXIT:
       if os.WIFSIGNALED(ret) and os.WTERMSIG(signal.SIGKILL):
         fo.write('process killed, code: {}\n'.format(ret))

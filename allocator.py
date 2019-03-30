@@ -19,6 +19,7 @@ class AbstractAllocator():
   def __init__(self):
     self.malloc_ops = tuple(map(lambda f: functools.partial(f, self), self.malloc_ops))
     self.free_ops = tuple(map(lambda f: functools.partial(f, self), self.free_ops))
+    self.record_full_trace = False
 
   def attach(self, pid, inspect_fd, stdin_fd, stdout_fd, epoll):
     # attach this allocator spec to an executing process
@@ -37,9 +38,11 @@ class AbstractAllocator():
   def update_allocator_trace(self):
     trace = unpack_packets(read_leftovers(self.inspect_fd, is_already_nonblock=True))
     self.allocator_trace.extend(trace)
+    if self.record_full_trace:
+      self.full_trace.extend(trace)
     for type, _, _, _ in trace:
       if type == TYPE_EXIT:
-        #print('[WARN] target problem exited!')
+        # print('[WARN] target problem exited!')
         raise ExitingError()
 
   def init(self):
@@ -54,7 +57,7 @@ class AbstractAllocator():
           read_leftovers(self.stdout_fd, is_already_nonblock=True)
         if (self.inspect_fd, select.EPOLLIN) in events:
           self.update_allocator_trace()
-    except ExitingError as e:
+    except ExitingError:
       pass
 
   def fini(self):
@@ -97,6 +100,8 @@ class AbstractAllocator():
       pos = self.buff.find(u)
     data = self.buff[:pos + len(u)]
     self.buff = self.buff[pos + len(u):]
+    if self.record_full_trace:
+      self.full_trace.append((TYPE_STDOUT, data, None, None))
     return data
 
   def read(self, n):
@@ -108,10 +113,14 @@ class AbstractAllocator():
         return data
       data += chunk
       remaining -= len(chunk)
+    if self.record_full_trace:
+      self.full_trace.append((TYPE_STDOUT, data, None, None))
     return data
 
   def write(self, data):
     self.input_trace.append(data)
+    if self.record_full_trace:
+      self.full_trace.append((TYPE_STDIN, data, None, None))
     assert(os.write(self.stdin_fd, data) == len(data))
 
   def malloc(self, i, size):
@@ -150,10 +159,3 @@ class AbstractAllocator():
       else:
         assert(False)
       self.update_allocator_trace()
-
-
-if __name__ == '__main__':
-  from spec.naive import NaiveAllocator
-  na = NaiveAllocator()
-  print(na)
-  print(NaiveAllocator.malloc_ops)

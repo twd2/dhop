@@ -118,25 +118,38 @@ def remove_op(ops, pos):
 
 def mutate_ab(ops, pos):
   assert(ops[pos].type == HeapOpType.A or ops[pos].type == HeapOpType.B)
-  print('ggg')
+  ops[pos] = HeapOp(ops[pos].type, rand_i(), rand_size())
+  return ops
+
+
+def mutate_malloc(ops, pos):
+  assert(ops[pos].type == HeapOpType.Alloc)
   ops[pos] = HeapOp(ops[pos].type, rand_i(), rand_size())
   return ops
 
 
 def mutate(ops):
-  t = random.randint(0, 2)
+  t = random.randint(0, 3 if len(ops) > 2 else 2)
+  print('m', t)
   if t == 0:
     pos = random.randint(0, len(ops))
     ops = insert_malloc(ops, pos)
   elif t == 1:
     pos = random.randint(0, len(ops))
     ops = insert_free(ops, pos)
-  else:
+  elif t == 2:
     pos = random.randint(0, len(ops) - 1)
     if ops[pos].type == HeapOpType.A or ops[pos].type == HeapOpType.B:
       ops = mutate_ab(ops, pos)
     else:
       ops = remove_op(ops, pos)
+  elif t == 3:
+    pos = random.randint(0, len(ops) - 1)
+    while ops[pos].type != HeapOpType.Alloc:
+      pos = random.randint(0, len(ops) - 1)
+    ops = mutate_malloc(ops, pos)
+  else:
+    assert(False)
   return ops
 
 
