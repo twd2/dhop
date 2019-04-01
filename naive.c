@@ -6,6 +6,9 @@
 
 int main()
 {
+  setvbuf(stdin, NULL, _IONBF, 0);
+  setvbuf(stdout, NULL, _IONBF, 0);
+  setvbuf(stderr, NULL, _IONBF, 0);
   puts("=== NAIVE MALLOC ===\n"
        "1. malloc\n"
        "2. calloc\n"

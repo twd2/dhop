@@ -51,6 +51,7 @@ static void (*orig_free)(void *ptr) = boot_free;
 static void init(void)
 {
   initialized = 1;
+  setvbuf(stdin, NULL, _IONBF, 0);
   setvbuf(stdout, NULL, _IONBF, 0);
   setvbuf(stderr, NULL, _IONBF, 0);
   orig_malloc = dlsym(RTLD_NEXT, "malloc");
@@ -145,7 +146,7 @@ static void read_leftovers(int fd)
   fcntl(fd, F_SETFL, saved_flags | O_NONBLOCK);
   while (read(fd, tmp, sizeof(tmp)) > 0);
   fcntl(fd, F_SETFL, saved_flags);
-} 
+}
 
 #ifdef FORK_SERVER
 static void fork_server(void)
