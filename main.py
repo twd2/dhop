@@ -131,6 +131,10 @@ def main():
                 .format(crashes, total, time_usage, total / time_usage))
           done = True
           break
+        print(loss)
+        if loss == 16:
+          if random.randint(0, 99) == 0:
+            trace.dump_trace(sys.stdout, ator.allocator_trace)
         if loss < min_loss or loss in buckets:
           # print('new seed!')
           buckets[loss].append((loss, ops))

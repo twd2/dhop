@@ -18,9 +18,9 @@ def rand_i():
 
 def rand_size():
   if random.randint(0, 1):
-    return random.choice([32, 64, 128, 256, 512, 4096, 1 << 20, 2 << 20, 4 << 20, 8 << 20])
+    return random.choice([16, 32, 64, 128, 256, 512, 1024, 4096, 1 << 20, 2 << 20, 4 << 20, 8 << 20])
   else:
-    return random.randint(2, 1024) * 16
+    return random.randint(1, 1024) * 16
 
 
 def rand(length, malloc_ratio=0.5):
@@ -116,15 +116,20 @@ def remove_op(ops, pos):
   return ops
 
 
-def mutate_ab(ops, pos):
-  assert(ops[pos].type == HeapOpType.A or ops[pos].type == HeapOpType.B)
-  ops[pos] = HeapOp(ops[pos].type, rand_i(), rand_size())
-  return ops
-
-
 def mutate_malloc(ops, pos):
-  assert(ops[pos].type == HeapOpType.Alloc)
-  ops[pos] = HeapOp(ops[pos].type, rand_i(), rand_size())
+  assert(ops[pos].type == HeapOpType.Alloc or ops[pos].type == HeapOpType.A or ops[pos].type == HeapOpType.B)
+  new_i = rand_i()
+  t = random.randint(0, 2)
+  print('m malloc', t)
+  if t == 0:
+    new_size = max(ops[pos].arg - 16, 16)
+  elif t == 1:
+    new_size = min(ops[pos].arg + 16, 1 << 32)
+  elif t == 2:
+    new_size = rand_size()
+  else:
+    assert(False)
+  ops[pos] = HeapOp(ops[pos].type, rand_i(), new_size)
   return ops
 
 
@@ -140,7 +145,7 @@ def mutate(ops):
   elif t == 2:
     pos = random.randint(0, len(ops) - 1)
     if ops[pos].type == HeapOpType.A or ops[pos].type == HeapOpType.B:
-      ops = mutate_ab(ops, pos)
+      ops = mutate_malloc(ops, pos)
     else:
       ops = remove_op(ops, pos)
   elif t == 3:
