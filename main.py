@@ -72,7 +72,7 @@ def main():
   result_dir = 'results'
   ator_spec = NaiveAllocator
   optimize = True
-  new_seed_ratio = 1 #0.5
+  new_seed_ratio = 1#0.5  # FIXME
   try:
     os.makedirs(result_dir)
   except FileExistsError:

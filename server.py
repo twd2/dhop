@@ -48,8 +48,6 @@ class ForkServer():
 
   def wait_for_ready(self):
     # Create an epoll object for 2 fds.
-    set_nonblock(self.inspect_fd, True)
-    set_nonblock(self.stdout_fd, True)
     fds = [self.inspect_fd, self.stdout_fd]
     self.epoll = select.epoll(len(fds))
     for fd in fds:

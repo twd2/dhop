@@ -54,7 +54,9 @@ class AbstractAllocator():
       while True:
         events = self.epoll.poll()
         if (self.stdout_fd, select.EPOLLIN) in events:
-          read_leftovers(self.stdout_fd, is_already_nonblock=True)
+          data = read_leftovers(self.stdout_fd, is_already_nonblock=True)
+          if self.record_full_trace:
+            self.full_trace.append((TYPE_STDOUT, data, None, None))
         if (self.inspect_fd, select.EPOLLIN) in events:
           self.update_allocator_trace()
     except ExitingError:
@@ -117,6 +119,17 @@ class AbstractAllocator():
       self.full_trace.append((TYPE_STDOUT, data, None, None))
     return data
 
+  def read_leftovers(self):
+    events = self.epoll.poll()
+    if (self.inspect_fd, select.EPOLLIN) in events:
+      self.update_allocator_trace()
+    if (self.stdout_fd, select.EPOLLIN) in events:
+      data = read_leftovers(self.stdout_fd, is_already_nonblock=True)
+      if self.record_full_trace:
+        self.full_trace.append((TYPE_STDOUT, data, None, None))
+      return data
+    return b''
+
   def write(self, data):
     self.input_trace.append(data)
     if self.record_full_trace:
@@ -131,9 +144,9 @@ class AbstractAllocator():
 
   def do_op(self, op):
     if op.type == opseq.HeapOpType.A:
-      return self.alloc_a(op.i, op.arg)
+      return self.alloc_a(op.i % len(self.malloc_ops), op.arg)
     elif op.type == opseq.HeapOpType.B:
-      return self.alloc_b(op.i, op.arg)
+      return self.alloc_b(op.i % len(self.malloc_ops), op.arg)
 
     if op.type == opseq.HeapOpType.Alloc:
       ops = self.malloc_ops
@@ -153,9 +166,9 @@ class AbstractAllocator():
       elif type == opseq.HeapOpType.Free:
         self.free_ops[i % len(self.free_ops)](ref_to_arg.pop(arg))
       elif type == opseq.HeapOpType.A:
-        ref_a = self.alloc_a(i, arg)
+        ref_a = self.alloc_a(i % len(self.malloc_ops), arg)
       elif type == opseq.HeapOpType.B:
-        ref_b = self.alloc_b(i, arg)
+        ref_b = self.alloc_b(i % len(self.malloc_ops), arg)
       else:
         assert(False)
       self.update_allocator_trace()
