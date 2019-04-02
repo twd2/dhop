@@ -1,15 +1,16 @@
 #define _GNU_SOURCE
 
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <signal.h>
-#include <unistd.h>
+#include <dlfcn.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <stdlib.h>
+#include <signal.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <dlfcn.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+
 
 #define INSPECT_FD 3
 #define SERVER_FD  4
@@ -54,14 +55,20 @@ static void init(void)
   setvbuf(stdin, NULL, _IONBF, 0);
   setvbuf(stdout, NULL, _IONBF, 0);
   setvbuf(stderr, NULL, _IONBF, 0);
-  orig_malloc = dlsym(RTLD_NEXT, "malloc");
-  orig_calloc = dlsym(RTLD_NEXT, "calloc");
-  orig_realloc = dlsym(RTLD_NEXT, "realloc");
-  orig_free = dlsym(RTLD_NEXT, "free");
+  // Load symbols.
+  void *(*dl_malloc)(size_t size) = dlsym(RTLD_NEXT, "malloc");
+  void *(*dl_calloc)(size_t num, size_t size) = dlsym(RTLD_NEXT, "calloc");
+  void *(*dl_realloc)(void *ptr, size_t size) = dlsym(RTLD_NEXT, "realloc");
+  void (*dl_free)(void *ptr) = dlsym(RTLD_NEXT, "free");
   (void)dlsym(RTLD_NEXT, "puts");
   (void)dlsym(RTLD_NEXT, "printf");
   (void)dlsym(RTLD_NEXT, "scanf");
   (void)dlsym(RTLD_NEXT, "exit");
+  // Commit.
+  orig_malloc = dl_malloc;
+  orig_calloc = dl_calloc;
+  orig_realloc = dl_realloc;
+  orig_free = dl_free;
 #ifdef FORK_SERVER
   fork_server();
 #endif
@@ -149,6 +156,7 @@ static void read_leftovers(int fd)
 }
 
 #ifdef FORK_SERVER
+// Fork Server - server side
 static void fork_server(void)
 {
   packet_t packet = { .type = TYPE_READY, .arg1 = 0, .arg2 = 0, .ret = 0 };

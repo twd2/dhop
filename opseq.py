@@ -182,9 +182,5 @@ if __name__ == '__main__':
   with open('results/before.c', 'w') as f:
     dump_ops(f, ops)
   mutate(ops)
-  #remove_op(ops, 19)
-  #remove_op(ops, 2)
-  #insert_free(ops, 10)
-  #insert_free(ops, 10)
   with open('results/after.c', 'w') as f:
     dump_ops(f, ops)

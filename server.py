@@ -61,8 +61,11 @@ class ForkServer():
       while True:
         print(read_leftovers(self.stdout_fd, is_already_nonblock=True).decode(), end='')
         self.epoll.poll()
-    type, _, _, _ = read_packet(self.inspect_fd)
-    assert(type == TYPE_READY)
+    while True:
+      type, _, _, _ = read_packet(self.inspect_fd)
+      if type == TYPE_READY:
+        break
+      self.epoll.poll()
     print('ready!')
     print('[DEBUG] fork server pid is', self.server_pid)
 
