@@ -1,0 +1,6 @@
+malloc(1376) = 0x555555757260
+malloc(32) = 0x5555557577d0
+free(0x555555757260)
+malloc(1312) = 0x555555757260
+malloc(32) = 0x555555757790
+process killed, code: 9
