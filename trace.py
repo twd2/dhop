@@ -12,10 +12,16 @@ def trace_to_layout(trace):
     elif type == TYPE_CALLOC:
       regions[ret] = arg1 * arg2
     elif type == TYPE_REALLOC:
-      del regions[arg1]
+      if arg1:
+        del regions[arg1]
       regions[ret] = arg2
     elif type == TYPE_FREE:
-      del regions[arg1]
+      if arg1:
+        del regions[arg1]
+    elif type == TYPE_STDIN:
+      pass
+    elif type == TYPE_STDOUT:
+      pass
     elif type == TYPE_EXIT:
       pass
     else:
@@ -25,6 +31,8 @@ def trace_to_layout(trace):
 
 
 def dump_layout(fo, layout, a_addr=None, b_addr=None):
+  if not layout:
+    return
   base_addr = layout[0][0] & ~0xfff
   for begin, size in layout:
     if begin == a_addr:
