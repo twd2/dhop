@@ -46,6 +46,7 @@ def main():
   with open('{}/full_trace.txt'.format(result_dir), 'w') as f:
     trace.dump_trace(f, ator.full_trace)
     print('[INFO] The full trace is written to {}/full_trace.txt.'.format(result_dir))
+  trace.dump_layout(sys.stdout, trace.trace_to_layout(ator.full_trace))
   forkd.kill()
   forkd.wait_for_exit()
   print('[INFO] Done.')

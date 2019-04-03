@@ -120,7 +120,6 @@ def mutate_malloc(ops, pos):
   assert(ops[pos].type == HeapOpType.Alloc or ops[pos].type == HeapOpType.A or ops[pos].type == HeapOpType.B)
   new_i = rand_i()
   t = random.randint(0, 2)
-  print('m malloc', t)
   if t == 0:
     new_size = max(ops[pos].arg - 16, 16)
   elif t == 1:
@@ -135,7 +134,6 @@ def mutate_malloc(ops, pos):
 
 def mutate(ops):
   t = random.randint(0, 3 if len(ops) > 2 else 2)
-  print('m', t)
   if t == 0:
     pos = random.randint(0, len(ops))
     ops = insert_malloc(ops, pos)

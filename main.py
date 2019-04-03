@@ -19,7 +19,6 @@ import trace
 def execute_ops(forkd, ator_spec, ops):
   child_info = forkd.fork()
   ator = ator_spec()
-  ator.record_full_trace = True # FIXME
   ator.attach(*child_info)
   ator.init()
   ator.execute(ops)
@@ -78,7 +77,7 @@ def main():
   except FileExistsError:
     pass
   if len(sys.argv) < 2:
-    print('Usage: main.py filename arguments...')
+    print('Usage: {} filename arguments...'.format(sys.argv[0]))
     return
   print('[INFO] Start')
   forkd = server.ForkServer(sys.argv[1:])
@@ -100,7 +99,7 @@ def main():
     else:
       keys = list(buckets.keys())
       weights = list(map(lambda k: math.exp(-k / 16), keys))
-      print(keys, weights)
+      print('[DEBUG] Seeds and their weights:', keys, weights)
       key = random.choices(keys, weights)[0]
       seed_loss, seed = random.choice(buckets[key])
       candidates = []
@@ -125,20 +124,21 @@ def main():
             ator, ops = optimize_ops(forkd, ator_spec, ops)
             print('done!')
             write_results(result_dir, ator, ops, 'optimized ', 'opt_')
-            trace.dump_trace(sys.stdout, ator.full_trace) #FIXME
           time_usage = end_time - begin_time
           print('[INFO] {} crashes, {} totally, {:.6f} seconds, {:.2f} executions / sec'
                 .format(crashes, total, time_usage, total / time_usage))
           done = True
           break
-        print(loss)
-        if loss == 16:
-          if random.randint(0, 99) == 0:
-            trace.dump_trace(sys.stdout, ator.allocator_trace)
-        if loss < min_loss or loss in buckets:
-          # print('new seed!')
-          buckets[loss].append((loss, ops))
-          seed_count += 1
+        if new_seed_ratio < 1.0:
+          if loss == 16:
+            if random.randint(0, 99) == 0:
+              print('[DEBUG] current loss =', loss)
+              print('[DEBUG] Trace:')
+              trace.dump_trace(sys.stdout, ator.allocator_trace)
+          if loss < min_loss or loss in buckets:
+            # print('[DEBUG] New seed added.')
+            buckets[loss].append((loss, ops))
+            seed_count += 1
         if loss < min_loss:
           min_loss = loss
       eps += 1
