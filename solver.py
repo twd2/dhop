@@ -5,6 +5,7 @@ import copy
 import math
 import os
 import os.path
+import pkgutil
 import random
 import sys
 import time
@@ -12,8 +13,17 @@ import time
 import allocator
 import opseq
 import server
-from spec.naive import NaiveAllocator
 import trace
+
+
+def get_ator_spec(name):
+  model_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'spec')
+  for module_finder, name, ispkg in pkgutil.iter_modules([model_path]):
+    if not ispkg:
+      module = module_finder.find_module(name).load_module()
+      if 'Allocator' in dir(module):
+        return module.Allocator
+  return None
 
 
 def execute_ops(forkd, ator_spec, ops):
@@ -51,25 +61,32 @@ def optimize_ops(forkd, ator_spec, ops):
   return ator, ops
 
 
-def write_results(result_dir, ator, ops, adj='', prefix=''):
-  with open('{}/{}trace.txt'.format(result_dir, prefix), 'w') as f:
-    trace.dump_trace(f, ator.allocator_trace)
-    print('[INFO] The {}trace is written to {}/{}trace.txt.'.format(adj, result_dir, prefix))
-  with open('{}/{}layout.txt'.format(result_dir, prefix), 'w') as f:
-    trace.dump_layout(f, trace.trace_to_layout(ator.allocator_trace), ator.a_addr, ator.b_addr)
-    print('[INFO] The {}layout is written to {}/{}layout.txt.'.format(adj, result_dir, prefix))
-  with open('{}/{}opseq.txt'.format(result_dir, prefix), 'w') as f:
-    opseq.dump_ops(f, ops)
-    print('[INFO] The {}operations sequence is written to {}/{}opseq.txt.'.format(adj, result_dir, prefix))
+def write_results(result_dir, ator, ops, adj='', prefix='', write_full_trace=False):
+  if ops != None:
+    with open('{}/{}opseq.txt'.format(result_dir, prefix), 'w') as f:
+      opseq.dump_ops(f, ops)
+      print('[INFO] The {}operations sequence is written to {}/{}opseq.txt.' \
+            .format(adj, result_dir, prefix))
   with open('{}/{}input.txt'.format(result_dir, prefix), 'wb') as f:
     f.write(b''.join(ator.input_trace))
     print('[INFO] The {}input is written to {}/{}input.txt.'.format(adj, result_dir, prefix))
+  with open('{}/{}trace.txt'.format(result_dir, prefix), 'w') as f:
+    trace.dump_trace(f, ator.allocator_trace)
+    print('[INFO] The {}trace is written to {}/{}trace.txt.'.format(adj, result_dir, prefix))
+  if write_full_trace:
+    with open('{}/{}full_trace.txt'.format(result_dir, prefix), 'w') as f:
+      trace.dump_trace(f, ator.full_trace)
+      print('[INFO] The {}full trace is written to {}/{}full_trace.txt.' \
+            .format(adj, result_dir, prefix))
+  with open('{}/{}layout.txt'.format(result_dir, prefix), 'w') as f:
+    trace.dump_layout(f, trace.trace_to_layout(ator.allocator_trace), ator.a_addr, ator.b_addr)
+    print('[INFO] The {}layout is written to {}/{}layout.txt.'.format(adj, result_dir, prefix))
 
 
 def main():
   # TODO: parameterize
   result_dir = 'results'
-  ator_spec = NaiveAllocator
+  ator_spec = get_ator_spec('naive')
   optimize = True
   new_seed_ratio = 1#0.5  # FIXME
   try:
@@ -93,7 +110,7 @@ def main():
   done = False
   while not done:
     if not buckets or random.random() <= new_seed_ratio:
-      # generate new seed
+      # Generate a brand new seed.
       seed_loss, seed = 0xffffffffffffffff, opseq.rand(random.randint(0, 20))
       candidates = [seed]
     else:
@@ -156,5 +173,4 @@ def main():
 
 
 if __name__ == '__main__':
-  #exit(asyncio.get_event_loop().run_until_complete(main()))
   exit(main())

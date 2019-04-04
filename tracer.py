@@ -11,6 +11,7 @@ import server
 import trace
 import utils
 
+from solver import write_results
 
 def main():
   result_dir = 'results'
@@ -43,10 +44,7 @@ def main():
   except allocator.ExitingError:
     pass
   print('[INFO] Exited.')
-  with open('{}/full_trace.txt'.format(result_dir), 'w') as f:
-    trace.dump_trace(f, ator.full_trace)
-    print('[INFO] The full trace is written to {}/full_trace.txt.'.format(result_dir))
-  trace.dump_layout(sys.stdout, trace.trace_to_layout(ator.full_trace))
+  write_results(result_dir, ator, None, "tracer's ", 'tracer_', True)
   forkd.kill()
   forkd.wait_for_exit()
   print('[INFO] Done.')
