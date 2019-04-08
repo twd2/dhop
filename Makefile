@@ -1,11 +1,11 @@
 .PHONY: all
-all: naive wrapper.so
+all: naive wrapper.so simplemalloc.so
 
 naive: naive.c
 	gcc -O2 -Wall naive.c -o naive
 
-wrapper.so: wrapper.c
-	gcc -O2 -Wall -fno-stack-protector -fPIC -shared wrapper.c -o wrapper.so -ldl
+%.so: %.c
+	gcc -O2 -Wall -fno-stack-protector -fPIC -shared $^ -o $@ -ldl
 
 .PHONY: test
 test: all
@@ -18,5 +18,5 @@ kill:
 
 .PHONY: clean
 clean:
-	-rm naive wrapper.so
+	-rm naive wrapper.so simplemalloc.so
 
