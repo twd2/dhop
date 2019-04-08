@@ -83,6 +83,10 @@ def write_results(result_dir, ator, ops, adj='', prefix='', write_full_trace=Fal
     print('[INFO] The {}layout is written to {}/{}layout.txt.'.format(adj, result_dir, prefix))
 
 
+def calc_priority(prev_priority, loss, layout):
+  return min(loss, prev_priority)
+
+
 def main():
   # TODO: parameterize
   result_dir = 'results'
@@ -111,14 +115,14 @@ def main():
   while not done:
     if not buckets or random.random() <= new_seed_ratio:
       # Generate a brand new seed.
-      seed_loss, seed = 0xffffffffffffffff, opseq.rand(random.randint(0, 20))
+      seed_priority, seed = 0xffffffffffffffff, opseq.rand(random.randint(0, 20))
       candidates = [seed]
     else:
       keys = list(buckets.keys())
       weights = list(map(lambda k: math.exp(-k / 16), keys))
       print('[DEBUG] Seeds and their weights:', keys, weights)
       key = random.choices(keys, weights)[0]
-      seed_loss, seed = random.choice(buckets[key])
+      seed_priority, seed = random.choice(buckets[key])
       candidates = []
       for _ in range(10):  # TODO: power schedule
         ops = copy.deepcopy(seed)
@@ -152,9 +156,12 @@ def main():
               print('[DEBUG] current loss =', loss)
               print('[DEBUG] Trace:')
               trace.dump_trace(sys.stdout, ator.allocator_trace)
-          if loss < min_loss or loss in buckets:
+          priority = calc_priority(seed_priority, loss, None)  # TODO: layout
+          if priority != loss:
+            print('[DEBUG] loss={}, priority={}'.format(loss, priority))
+          if loss < min_loss or priority in buckets:
             # print('[DEBUG] New seed added.')
-            buckets[loss].append((loss, ops))
+            buckets[priority].append((priority, ops))
             seed_count += 1
         if loss < min_loss:
           min_loss = loss
