@@ -17,8 +17,9 @@ def rand_i():
 
 
 def rand_size():
+  # TODO: handle program calling mallopt
   if random.randint(0, 1):
-    return random.choice([16, 32, 64, 128, 256, 512, 1024, 4096, 1 << 20, 2 << 20, 4 << 20, 8 << 20])
+    return random.choice([16, 32, 64, 128, 256, 512, 1024, 4096])
   else:
     return random.randint(1, 1024) * 16
 
