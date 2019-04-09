@@ -1,10 +1,13 @@
 .PHONY: all
-all: naive wrapper.so simplemalloc.so
+all: test/naive wrapper.so allocator/simplemalloc/simplemalloc.so
 
-naive: naive.c
-	gcc -O2 -Wall naive.c -o naive
+test/%: test/%.c
+	gcc -O2 -Wall $^ -o $@
 
 %.so: %.c
+	gcc -O2 -Wall -fno-stack-protector -fPIC -shared $^ -o $@ -ldl
+
+allocator/simplemalloc/simplemalloc.so: allocator/simplemalloc/simplemalloc.c
 	gcc -O2 -Wall -fno-stack-protector -fPIC -shared $^ -o $@ -ldl
 
 .PHONY: test
@@ -18,5 +21,5 @@ kill:
 
 .PHONY: clean
 clean:
-	-rm naive wrapper.so simplemalloc.so
+	-rm test/naive wrapper.so allocator/*/*.so
 

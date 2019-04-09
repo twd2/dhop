@@ -20,8 +20,12 @@ import trace
 parser = argparse.ArgumentParser()
 parser.add_argument('-a', '--allocator', help='specify the allocator library (.so)')
 parser.add_argument('-n', '--no-optimize', action='store_true', help='do not optimize results')
-parser.add_argument('-o', '--output', default='results', help='specify the result directory')
-parser.add_argument('-s', '--spec', help='specify the spec file')
+parser.add_argument('-o', '--output', default='results',
+                    help='specify the result directory, default: results')
+parser.add_argument('-s', '--solver', default='random', choices=['random', 'directed', 'diversity'],
+                    help='specify the solver, default is the random solver')
+parser.add_argument('-z', '--solver-args', nargs='*', help='executable and its arguments')
+parser.add_argument('desc', help='specify the description (spec) file')
 parser.add_argument('args', nargs='+', help='executable and its arguments')
 
 
@@ -99,9 +103,9 @@ def calc_priority(prev_priority, loss, layout):
 
 
 def main():
-  ator_spec = get_ator_spec(args.spec)
+  ator_spec = get_ator_spec(args.desc)
   if not ator_spec:
-    print('[ERROR] No such spec named "{}".'.format(args.spec))
+    print('[ERROR] No such spec named "{}".'.format(args.desc))
     exit(1)
   optimize = not args.no_optimize
   new_seed_ratio = 1#0.5  # FIXME

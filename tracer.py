@@ -17,7 +17,8 @@ from solver import write_results
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-a', '--allocator', help='specify the allocator library (.so)')
-parser.add_argument('-o', '--output', default='results', help='specify the result directory')
+parser.add_argument('-o', '--output', default='results/tracer',
+                    help='specify the result directory, default: results/tracer')
 parser.add_argument('args', nargs='+', help='executable and its arguments')
 
 
@@ -26,9 +27,6 @@ def main():
     os.makedirs(args.output)
   except FileExistsError:
     pass
-  if len(sys.argv) < 2:
-    print('Usage: {} filename arguments...'.format(args.args))
-    return
   print('[INFO] Start')
   forkd = server.ForkServer(args.args, args.allocator)
   forkd.wait_for_ready()
@@ -51,7 +49,7 @@ def main():
   except allocator.ExitingError:
     pass
   print('[INFO] Exited.')
-  write_results(args.output, ator, None, "tracer's ", 'tracer_', True)
+  write_results(args.output, ator, None, "tracer's ", '', True)
   forkd.kill()
   forkd.wait_for_exit()
   print('[INFO] Done.')
