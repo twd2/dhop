@@ -9,7 +9,7 @@ from utils import *
 
 # Fork Server - client side
 class ForkServer():
-  def __init__(self, args):
+  def __init__(self, args, malloc_so=None):
     inspect_fd_r, inspect_fd_w = os.pipe2(0)
     server_fd_r, server_fd_w = os.pipe2(0)
     stdin_fd_r, stdin_fd_w = os.pipe2(0)
@@ -34,9 +34,10 @@ class ForkServer():
       os.dup2(stdout_fd_w, pty.STDERR_FILENO)
       if stdout_fd_w != pty.STDOUT_FILENO and stdout_fd_w != pty.STDERR_FILENO:
         os.close(stdout_fd_w)
-      os.execve(args[0], args,
-                {**os.environ,
-                 'LD_PRELOAD': os.path.dirname(os.path.realpath(__file__)) + '/wrapper.so'})
+      preload_libraries = [os.path.dirname(os.path.realpath(__file__)) + '/wrapper.so']
+      if malloc_so:
+        preload_libraries.append(malloc_so)
+      os.execve(args[0], args, {**os.environ, 'LD_PRELOAD': ':'.join(preload_libraries)})
       assert(False)
     else:
       # parent

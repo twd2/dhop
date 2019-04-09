@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import argparse
 import os
 import os.path
 import select
@@ -13,17 +14,23 @@ import utils
 
 from solver import write_results
 
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-a', '--allocator', help='specify the allocator library (.so)')
+parser.add_argument('-o', '--output', default='results', help='specify the result directory')
+parser.add_argument('args', nargs='+', help='executable and its arguments')
+
+
 def main():
-  result_dir = 'results'
   try:
-    os.makedirs(result_dir)
+    os.makedirs(args.output)
   except FileExistsError:
     pass
   if len(sys.argv) < 2:
-    print('Usage: {} filename arguments...'.format(sys.argv[0]))
+    print('Usage: {} filename arguments...'.format(args.args))
     return
   print('[INFO] Start')
-  forkd = server.ForkServer(sys.argv[1:])
+  forkd = server.ForkServer(args.args, args.allocator)
   forkd.wait_for_ready()
   child_info = forkd.fork()
   ator = allocator.AbstractAllocator()
@@ -44,7 +51,7 @@ def main():
   except allocator.ExitingError:
     pass
   print('[INFO] Exited.')
-  write_results(result_dir, ator, None, "tracer's ", 'tracer_', True)
+  write_results(args.output, ator, None, "tracer's ", 'tracer_', True)
   forkd.kill()
   forkd.wait_for_exit()
   print('[INFO] Done.')
@@ -52,4 +59,5 @@ def main():
 
 
 if __name__ == '__main__':
+  args = parser.parse_args()
   exit(main())

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import argparse
 import collections
 import copy
 import math
@@ -16,9 +17,19 @@ import server
 import trace
 
 
-def get_ator_spec(name):
+parser = argparse.ArgumentParser()
+parser.add_argument('-a', '--allocator', help='specify the allocator library (.so)')
+parser.add_argument('-n', '--no-optimize', action='store_true', help='do not optimize results')
+parser.add_argument('-o', '--output', default='results', help='specify the result directory')
+parser.add_argument('-s', '--spec', help='specify the spec file')
+parser.add_argument('args', nargs='+', help='executable and its arguments')
+
+
+def get_ator_spec(spec_name):
   model_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'spec')
   for module_finder, name, ispkg in pkgutil.iter_modules([model_path]):
+    if name != spec_name:
+      continue
     if not ispkg:
       module = module_finder.find_module(name).load_module()
       if 'Allocator' in dir(module):
@@ -88,20 +99,18 @@ def calc_priority(prev_priority, loss, layout):
 
 
 def main():
-  # TODO: parameterize
-  result_dir = 'results'
-  ator_spec = get_ator_spec('naive')
-  optimize = True
+  ator_spec = get_ator_spec(args.spec)
+  if not ator_spec:
+    print('[ERROR] No such spec named "{}".'.format(args.spec))
+    exit(1)
+  optimize = not args.no_optimize
   new_seed_ratio = 1#0.5  # FIXME
   try:
-    os.makedirs(result_dir)
+    os.makedirs(args.output)
   except FileExistsError:
     pass
-  if len(sys.argv) < 2:
-    print('Usage: {} filename arguments...'.format(sys.argv[0]))
-    return
   print('[INFO] Start')
-  forkd = server.ForkServer(sys.argv[1:])
+  forkd = server.ForkServer(args.args, args.allocator)
   forkd.wait_for_ready()
   last_time = time.time()
   begin_time = time.time()
@@ -139,12 +148,12 @@ def main():
         if loss == 0:
           end_time = time.time()
           print('\n[INFO] loss = 0\n[INFO] Congratulations! The desired heap layout is achieved.')
-          write_results(result_dir, ator, ops)
+          write_results(args.output, ator, ops)
           if optimize:
             print('[INFO] Optimizing results... ', end='')
             ator, ops = optimize_ops(forkd, ator_spec, ops)
             print('done!')
-            write_results(result_dir, ator, ops, 'optimized ', 'opt_')
+            write_results(args.output, ator, ops, 'optimized ', 'opt_')
           time_usage = end_time - begin_time
           print('[INFO] {} crashes, {} totally, {:.6f} seconds, {:.2f} executions / sec'
                 .format(crashes, total, time_usage, total / time_usage))
@@ -180,4 +189,5 @@ def main():
 
 
 if __name__ == '__main__':
+  args = parser.parse_args()
   exit(main())
