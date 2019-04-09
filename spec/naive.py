@@ -1,7 +1,7 @@
 import allocator
 
-# This is the spec of the `naive.c`.
 
+# This is the spec of the `naive.c`.
 class Allocator(allocator.AbstractAllocator):
   def __init__(self):
     super().__init__()

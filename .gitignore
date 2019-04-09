@@ -1,5 +1,6 @@
 naive
 *.so
 *.o
+stat.csv
 __pycache__
 results

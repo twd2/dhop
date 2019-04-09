@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import argparse
-import collections
 import copy
 import math
 import os
@@ -24,20 +23,21 @@ parser.add_argument('-o', '--output', default='results',
                     help='specify the result directory, default: results')
 parser.add_argument('-s', '--solver', default='random', choices=['random', 'directed', 'diversity'],
                     help='specify the solver, default is the random solver')
-parser.add_argument('-z', '--solver-args', nargs='*', help='executable and its arguments')
+parser.add_argument('-t', '--timeout', type=int, default=600, help='timeout (seconds), default: 600')
+parser.add_argument('-z', '--solver-args', nargs='*', default=[], help='executable and its arguments')
 parser.add_argument('desc', help='specify the description (spec) file')
 parser.add_argument('args', nargs='+', help='executable and its arguments')
 
 
-def get_ator_spec(spec_name):
-  model_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'spec')
+def get_class(type, module_name, class_name):
+  model_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), type)
   for module_finder, name, ispkg in pkgutil.iter_modules([model_path]):
-    if name != spec_name:
+    if name != module_name:
       continue
     if not ispkg:
       module = module_finder.find_module(name).load_module()
-      if 'Allocator' in dir(module):
-        return module.Allocator
+      if class_name in dir(module):
+        return getattr(module, class_name)
   return None
 
 
@@ -98,49 +98,36 @@ def write_results(result_dir, ator, ops, adj='', prefix='', write_full_trace=Fal
     print('[INFO] The {}layout is written to {}/{}layout.txt.'.format(adj, result_dir, prefix))
 
 
-def calc_priority(prev_priority, loss, layout):
-  return min(loss, prev_priority)
-
-
 def main():
-  ator_spec = get_ator_spec(args.desc)
+  ator_spec = get_class('spec', args.desc, 'Allocator')
   if not ator_spec:
     print('[ERROR] No such spec named "{}".'.format(args.desc))
     exit(1)
-  optimize = not args.no_optimize
+  Solver = get_class('solver', args.solver, 'Solver')
+  if not Solver:
+    print('[ERROR] No such solver named "{}".'.format(args.solver))
+    exit(1)
+  do_optimize = not args.no_optimize
   new_seed_ratio = 1#0.5  # FIXME
   try:
     os.makedirs(args.output)
   except FileExistsError:
     pass
+  solver = Solver(*args.solver_args)
   print('[INFO] Start')
   forkd = server.ForkServer(args.args, args.allocator)
   forkd.wait_for_ready()
-  last_time = time.time()
-  begin_time = time.time()
   seed_count = 0
   eps = 0
   total = 0
   crashes = 0
   min_loss = 0xffffffffffffffff
-  buckets = collections.defaultdict(list)
   done = False
+  solved = False
+  begin_time = time.time()
+  last_time = begin_time
   while not done:
-    if not buckets or random.random() <= new_seed_ratio:
-      # Generate a brand new seed.
-      seed_priority, seed = 0xffffffffffffffff, opseq.rand(random.randint(0, 20))
-      candidates = [seed]
-    else:
-      keys = list(buckets.keys())
-      weights = list(map(lambda k: math.exp(-k / 16), keys))
-      print('[DEBUG] Seeds and their weights:', keys, weights)
-      key = random.choices(keys, weights)[0]
-      seed_priority, seed = random.choice(buckets[key])
-      candidates = []
-      for _ in range(10):  # TODO: power schedule
-        ops = copy.deepcopy(seed)
-        ops = opseq.mutate(ops)
-        candidates.append(ops)
+    candidates = solver.get_candidates()
     for ops in candidates:
       ator = None
       try:
@@ -153,29 +140,15 @@ def main():
           end_time = time.time()
           print('\n[INFO] loss = 0\n[INFO] Congratulations! The desired heap layout is achieved.')
           write_results(args.output, ator, ops)
-          if optimize:
+          if do_optimize:
             print('[INFO] Optimizing results... ', end='')
             ator, ops = optimize_ops(forkd, ator_spec, ops)
             print('done!')
             write_results(args.output, ator, ops, 'optimized ', 'opt_')
-          time_usage = end_time - begin_time
-          print('[INFO] {} crashes, {} totally, {:.6f} seconds, {:.2f} executions / sec'
-                .format(crashes, total, time_usage, total / time_usage))
+          solved = True
           done = True
           break
-        if new_seed_ratio < 1.0:
-          if loss == 16:
-            if random.randint(0, 99) == 0:
-              print('[DEBUG] current loss =', loss)
-              print('[DEBUG] Trace:')
-              trace.dump_trace(sys.stdout, ator.allocator_trace)
-          priority = calc_priority(seed_priority, loss, None)  # TODO: layout
-          if priority != loss:
-            print('[DEBUG] loss={}, priority={}'.format(loss, priority))
-          if loss < min_loss or priority in buckets:
-            # print('[DEBUG] New seed added.')
-            buckets[priority].append((priority, ops))
-            seed_count += 1
+        solver.update_result(ops, ator)
         if loss < min_loss:
           min_loss = loss
       eps += 1
@@ -183,12 +156,21 @@ def main():
       current_time = time.time()
       if current_time - last_time >= 1.0:
         last_time = current_time
-        print('\r[INFO] {} executions / sec, {} crashes, {} totally, loss = {}    '
+        print('\r[INFO] {} executions / sec, {} crashes, {} executions totally, loss = {}    '
               .format(eps, crashes, total, min_loss), end='')
         eps = 0
+        if current_time - begin_time >= args.timeout:
+          end_time = time.time()
+          print('\n[WARN] Timed out.')
+          solved = False
+          done = True
+          break
   forkd.kill()
   forkd.wait_for_exit()
-  print('[INFO] Done.')
+  time_usage = end_time - begin_time
+  print('[INFO] {} crashes, {} executions totally, {:.6f} seconds, {:.2f} executions / sec'
+        .format(crashes, total, time_usage, total / time_usage))
+  print('[INFO] Exiting...')
   return 0
 
 
