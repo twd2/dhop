@@ -184,6 +184,7 @@ def main():
               time_usage,
               total / time_usage
             ))
+  print('[INFO] The summary is written to {}/stat.csv.'.format(args.output))
   print('[INFO] Exiting...')
   return 0
 
