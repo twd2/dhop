@@ -19,13 +19,13 @@ import trace
 parser = argparse.ArgumentParser()
 parser.add_argument('-a', '--allocator', help='specify the allocator library (.so)')
 parser.add_argument('-n', '--no-optimize', action='store_true', help='do not optimize results')
-parser.add_argument('-o', '--output', default='results',
+parser.add_argument('-o', '--output', default='results/unnamed',
                     help='specify the result directory, default: results')
 parser.add_argument('-s', '--solver', default='random', choices=['random', 'directed', 'diversity'],
                     help='specify the solver, default is the random solver')
 parser.add_argument('-t', '--timeout', type=int, default=600, help='timeout (seconds), default: 600')
 parser.add_argument('-z', '--solver-args', nargs='*', default=[], help='executable and its arguments')
-parser.add_argument('desc', help='specify the description (spec) file')
+parser.add_argument('spec', help='specify the description (spec) file')
 parser.add_argument('args', nargs='+', help='executable and its arguments')
 
 
@@ -99,9 +99,9 @@ def write_results(result_dir, ator, ops, adj='', prefix='', write_full_trace=Fal
 
 
 def main():
-  ator_spec = get_class('spec', args.desc, 'Allocator')
+  ator_spec = get_class('spec', args.spec, 'Allocator')
   if not ator_spec:
-    print('[ERROR] No such spec named "{}".'.format(args.desc))
+    print('[ERROR] No such spec named "{}".'.format(args.spec))
     exit(1)
   Solver = get_class('solver', args.solver, 'Solver')
   if not Solver:
@@ -170,6 +170,20 @@ def main():
   time_usage = end_time - begin_time
   print('[INFO] {} crashes, {} executions totally, {:.6f} seconds, {:.2f} executions / sec'
         .format(crashes, total, time_usage, total / time_usage))
+  with open('{}/stat.csv'.format(args.output), 'w') as f:
+    f.write('{},{},{},{},{},{},{},{},{},{},{}\n'.format(
+              args.allocator if args.allocator else 'system default',
+              args.solver,
+              ' '.join(args.solver_args),
+              args.timeout,
+              args.spec,
+              ' '.join(args.args),
+              int(solved),
+              crashes,
+              total,
+              time_usage,
+              total / time_usage
+            ))
   print('[INFO] Exiting...')
   return 0
 
