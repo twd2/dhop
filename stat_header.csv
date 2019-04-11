@@ -1,1 +1,1 @@
-allocator,solver,solver args,timeout,spec,exe,solved,crashes,executions,time usage,speed
+path,allocator,solver,solver args,timeout,spec,executable,solved,crashes,executions,time usage,speed

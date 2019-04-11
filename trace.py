@@ -44,12 +44,22 @@ def dump_layout(fo, layout, a_addr=None, b_addr=None):
     fo.write('{}[0x{:x}, 0x{:x} + {})\n'.format(marker, begin - base_addr, begin - base_addr, size))
 
 
+def load_trace(fo):
+  trace = []
+  while True:
+    packet = fo.read(SIZEOF_PACKET)
+    if not packet:
+      break
+    trace.append(struct.unpack(STRUCT_PACKET, packet))
+  return trace
+
+
 def dump_trace(fo, trace):
   for type, arg1, arg2, ret in trace:
     if type == TYPE_MALLOC:
       fo.write('malloc({}) = {:#x}\n'.format(arg1, ret))
     elif type == TYPE_CALLOC:
-      fo.write('calloc({}) = {:#x}\n'.format(arg1, ret))
+      fo.write('calloc({}, {}) = {:#x}\n'.format(arg1, arg2, ret))
     elif type == TYPE_REALLOC:
       fo.write('realloc({:#x}, {}) = {:#x}\n'.format(arg1, arg2, ret))
     elif type == TYPE_FREE:
@@ -67,3 +77,7 @@ def dump_trace(fo, trace):
         fo.write('process crashed, code: {}\n'.format(ret))
     else:
       assert(False)
+
+if __name__ == '__main__':
+  import sys
+  dump_trace(sys.stdout, load_trace(sys.stdin.buffer))

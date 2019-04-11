@@ -13,7 +13,7 @@ def calc_priority(prev_priority, loss, layout):
 
 
 class Solver():
-  def __init__(self, new_seed_ratio, *args):
+  def __init__(self, new_seed_ratio=(10 / 11), *args):
     self.new_seed_ratio = float(new_seed_ratio)
     self.buckets = collections.defaultdict(list)
     self.min_loss = 0xffffffffffffffff
@@ -27,7 +27,7 @@ class Solver():
     else:
       keys = list(self.buckets.keys())
       weights = list(map(lambda k: math.exp(-k / 16), keys))
-      print('[DEBUG] Seeds and their weights:', keys, weights)
+      #print('[DEBUG] Seeds and their weights:', keys, weights)
       key = random.choices(keys, weights)[0]
       self.last_seed_priority, seed = random.choice(self.buckets[key])
       candidates = []
@@ -40,14 +40,15 @@ class Solver():
   def update_result(self, ops, ator):
     loss = ator.loss()
     if self.new_seed_ratio < 1.0:
-      if loss == 16:
+      '''if loss == 16:
         if random.randint(0, 99) == 0:
           print('[DEBUG] current loss =', loss)
           print('[DEBUG] Trace:')
-          trace.dump_trace(sys.stdout, ator.allocator_trace)
+          trace.dump_trace(sys.stdout, ator.allocator_trace)'''
       priority = calc_priority(self.last_seed_priority, loss, None)  # TODO: layout
       if priority != loss:
-        print('[DEBUG] loss={}, priority={}'.format(loss, priority))
+        #print('[DEBUG] loss={}, priority={}'.format(loss, priority))
+        pass
       if loss < self.min_loss or priority in self.buckets:
         # print('[DEBUG] New seed added.')
         self.buckets[priority].append((priority, ops))

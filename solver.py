@@ -103,10 +103,14 @@ def main():
   if not ator_spec:
     print('[ERROR] No such spec named "{}".'.format(args.spec))
     exit(1)
+  else:
+    print('[INFO] Using spec named "{}".'.format(args.spec))
   Solver = get_class('solver', args.solver, 'Solver')
   if not Solver:
     print('[ERROR] No such solver named "{}".'.format(args.solver))
     exit(1)
+  else:
+    print('[INFO] Using solver named "{}".'.format(args.solver))
   do_optimize = not args.no_optimize
   new_seed_ratio = 1#0.5  # FIXME
   try:
@@ -171,10 +175,11 @@ def main():
   print('[INFO] {} crashes, {} executions totally, {:.6f} seconds, {:.2f} executions / sec'
         .format(crashes, total, time_usage, total / time_usage))
   with open('{}/stat.csv'.format(args.output), 'w') as f:
-    f.write('{},{},{},{},{},{},{},{},{},{},{}\n'.format(
-              args.allocator if args.allocator else 'system default',
+    f.write('{},{},{},{},{},{},{},{},{},{},{},{}\n'.format(
+              args.output,
+              args.allocator if args.allocator else '(system default)',
               args.solver,
-              ' '.join(args.solver_args),
+              ' '.join(args.solver_args) if args.solver_args else '(default)',
               args.timeout,
               args.spec,
               ' '.join(args.args),
