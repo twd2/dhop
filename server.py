@@ -2,6 +2,7 @@ import os
 import pty
 import select
 import signal
+import struct
 import sys
 
 from utils import *
@@ -9,7 +10,12 @@ from utils import *
 
 # Fork Server - client side
 class ForkServer():
-  def __init__(self, args, malloc_so=None):
+  def __init__(self, do_hook, args, malloc_so=None):
+    self.do_hook = do_hook
+    self.args = args
+    self.malloc_so = malloc_so
+    self.executable = os.path.realpath(args[0])
+    self.hook_addr = None
     inspect_fd_r, inspect_fd_w = os.pipe2(0)
     server_fd_r, server_fd_w = os.pipe2(0)
     stdin_fd_r, stdin_fd_w = os.pipe2(0)
@@ -34,7 +40,10 @@ class ForkServer():
       os.dup2(stdout_fd_w, pty.STDERR_FILENO)
       if stdout_fd_w != pty.STDOUT_FILENO and stdout_fd_w != pty.STDERR_FILENO:
         os.close(stdout_fd_w)
-      preload_libraries = [os.path.dirname(os.path.realpath(__file__)) + '/wrapper.so']
+      if do_hook:
+        preload_libraries = [os.path.dirname(os.path.realpath(__file__)) + '/wrapper_hook.so']
+      else:
+        preload_libraries = [os.path.dirname(os.path.realpath(__file__)) + '/wrapper.so']
       if malloc_so:
         preload_libraries.append(malloc_so)
       os.execve(args[0], args, {**os.environ, 'LD_PRELOAD': ':'.join(preload_libraries)})
@@ -48,12 +57,6 @@ class ForkServer():
       self.stdout_fd = stdout_fd_r
 
   def wait_for_ready(self):
-    # Create an epoll object for 2 fds.
-    fds = [self.inspect_fd, self.stdout_fd]
-    self.epoll = select.epoll(len(fds))
-    for fd in fds:
-      set_nonblock(fd, True)
-      self.epoll.register(fd, select.EPOLLIN)
     print('[INFO] Waiting for the fork server... ', end='')
     sys.stdout.flush()
     events = self.epoll.poll()
@@ -68,11 +71,46 @@ class ForkServer():
         break
       self.epoll.poll()
     print('ready!')
+
+  def _find_section_text(self):
+    self.section_text_begin = 0
+    with open('/proc/{}/maps'.format(self.server_pid), 'r') as f:
+      for line in f:
+        # 555555554000-55555555c000 r-xp 00000000 08:02 5242960                    /bin/cat
+        parts = line.split()
+        vmrange, prot, filename = parts[0], parts[1], parts[5] if len(parts) >= 6 else ''
+        vmbegin, vmend = vmrange.split('-')
+        vmbegin = int(vmbegin, 16)
+        vmend = int(vmend, 16)
+        if 'x' in prot and os.path.realpath(filename) == self.executable:
+          self.section_text_begin = vmbegin
+    print('[INFO] Section .text is beginning at {}.'.format(hex(self.section_text_begin)))
+
+  def _set_hook(self):
+    if self.hook_addr != None:
+      hook_addr = self.section_text_begin + self.hook_addr
+    else:
+      hook_addr = 0
+    os.write(self.server_fd, struct.pack('<Q', hook_addr))
+
+  def init(self):
     print('[DEBUG] fork server pid is', self.server_pid)
+    # Create an epoll object for 2 fds.
+    fds = [self.inspect_fd, self.stdout_fd]
+    self.epoll = select.epoll(len(fds))
+    for fd in fds:
+      set_nonblock(fd, True)
+      self.epoll.register(fd, select.EPOLLIN)
+    if self.do_hook:
+      self.wait_for_ready()
+      self._find_section_text()
+      self._set_hook()
+    self.wait_for_ready()
 
   def fork(self):
     read_leftovers(self.inspect_fd, is_already_nonblock=True)
     read_leftovers(self.stdout_fd, is_already_nonblock=True)
+    # Send a request.
     os.write(self.server_fd, b'A')  # an arbitrary char
     # FIXME: ugly
     while True:
@@ -84,8 +122,9 @@ class ForkServer():
         # print('[INFO] child pid', child_pid)
         break
       else:
-        # print('[WARN] something wrong')
-        pass
+        print('[WARN] something wrong, received type {} rather than TYPE_READY.'.format(type))
+    # Allow the child to continue.
+    os.write(self.server_fd, b'A')  # an arbitrary char
     return child_pid, self.inspect_fd, self.stdin_fd, self.stdout_fd, self.epoll
 
   def kill(self):

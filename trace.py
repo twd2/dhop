@@ -18,11 +18,7 @@ def trace_to_layout(trace):
     elif type == TYPE_FREE:
       if arg1:
         del regions[arg1]
-    elif type == TYPE_STDIN:
-      pass
-    elif type == TYPE_STDOUT:
-      pass
-    elif type == TYPE_EXIT:
+    elif type in [TYPE_STDIN, TYPE_STDOUT, TYPE_MAIN_LOOP, TYPE_EXIT]:
       pass
     else:
       assert(False)
@@ -68,6 +64,8 @@ def dump_trace(fo, trace):
       fo.write('read(...) = {}\n'.format(arg1))
     elif type == TYPE_STDOUT:
       fo.write('write({})\n'.format(arg1))
+    elif type == TYPE_MAIN_LOOP:
+      fo.write('the main loop iterates.\n')
     elif type == TYPE_EXIT:
       if os.WIFSIGNALED(ret) and os.WTERMSIG(signal.SIGKILL):
         fo.write('process killed, code: {}\n'.format(ret))

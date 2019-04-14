@@ -28,8 +28,9 @@ def main():
   except FileExistsError:
     pass
   print('[INFO] Start')
-  forkd = server.ForkServer(args.args, args.allocator)
-  forkd.wait_for_ready()
+  forkd = server.ForkServer(True, args.args, args.allocator)
+  forkd.hook_addr = 0x924
+  forkd.init()
   child_info = forkd.fork()
   ator = allocator.AbstractAllocator()
   ator.record_full_trace = True
@@ -44,11 +45,18 @@ def main():
       if (sys.stdin.fileno(), select.EPOLLIN) in events:
         ator.write(utils.read_leftovers(sys.stdin.fileno(), is_already_nonblock=True))
       if (forkd.epoll.fileno(), select.EPOLLIN) in events:
-        sys.stdout.write(ator.read_leftovers().decode())
-        sys.stdout.flush()
+        data = ator.read_leftovers().decode()
+        while True:
+          try:
+            sys.stdout.write(data)
+            sys.stdout.flush()
+            break
+          except BlockingIOError:
+            pass
   except allocator.ExitingError:
     pass
   print('[INFO] Exited.')
+  ator.fix_output_trace()
   write_results(args.output, ator, None, "tracer's ", '', True)
   forkd.kill()
   forkd.wait_for_exit()

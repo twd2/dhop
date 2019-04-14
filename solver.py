@@ -112,15 +112,14 @@ def main():
   else:
     print('[INFO] Using solver named "{}".'.format(args.solver))
   do_optimize = not args.no_optimize
-  new_seed_ratio = 1#0.5  # FIXME
   try:
     os.makedirs(args.output)
   except FileExistsError:
     pass
   solver = Solver(*args.solver_args)
   print('[INFO] Start')
-  forkd = server.ForkServer(args.args, args.allocator)
-  forkd.wait_for_ready()
+  forkd = server.ForkServer(False, args.args, args.allocator)
+  forkd.init()
   seed_count = 0
   eps = 0
   total = 0

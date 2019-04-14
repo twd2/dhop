@@ -32,12 +32,15 @@ class AbstractAllocator():
     self.allocator_trace = []
     self.full_trace = [] # TODO
     self.input_trace = []
+    self.output_trace = []
     self.a_addr = 0x0
     self.b_addr = 0xffffffffffffffff
 
   def update_allocator_trace(self):
     trace = unpack_packets(read_leftovers(self.inspect_fd, is_already_nonblock=True))
-    self.allocator_trace.extend(trace)
+    for t in trace:
+      if t[0] in [TYPE_MALLOC, TYPE_CALLOC, TYPE_REALLOC, TYPE_FREE, TYPE_EXIT]:
+        self.allocator_trace.append(t)
     if self.record_full_trace:
       self.full_trace.extend(trace)
     for type, _, _, _ in trace:
@@ -56,7 +59,7 @@ class AbstractAllocator():
         if (self.stdout_fd, select.EPOLLIN) in events:
           data = read_leftovers(self.stdout_fd, is_already_nonblock=True)
           if self.record_full_trace:
-            self.full_trace.append((TYPE_STDOUT, data, None, None))
+            self.output_trace.append(data)
         if (self.inspect_fd, select.EPOLLIN) in events:
           self.update_allocator_trace()
     except ExitingError:
@@ -103,7 +106,7 @@ class AbstractAllocator():
     data = self.buff[:pos + len(u)]
     self.buff = self.buff[pos + len(u):]
     if self.record_full_trace:
-      self.full_trace.append((TYPE_STDOUT, data, None, None))
+      self.output_trace.append(data)
     return data
 
   def read(self, n):
@@ -116,7 +119,7 @@ class AbstractAllocator():
       data += chunk
       remaining -= len(chunk)
     if self.record_full_trace:
-      self.full_trace.append((TYPE_STDOUT, data, None, None))
+      self.output_trace.append(data)
     return data
 
   def read_leftovers(self):
@@ -126,7 +129,7 @@ class AbstractAllocator():
     if (self.stdout_fd, select.EPOLLIN) in events:
       data = read_leftovers(self.stdout_fd, is_already_nonblock=True)
       if self.record_full_trace:
-        self.full_trace.append((TYPE_STDOUT, data, None, None))
+        self.output_trace.append(data)
       return data
     return b''
 
@@ -172,3 +175,13 @@ class AbstractAllocator():
       else:
         assert(False)
       self.update_allocator_trace()
+
+  def fix_output_trace(self):
+    total_length = sum(map(lambda t: t[1] if t[0] == TYPE_STDOUT else 0, self.full_trace))
+    output = b''.join(self.output_trace)
+    output = output.ljust(total_length, b'?')
+    offset = 0
+    for i, (type, length, _, _) in enumerate(self.full_trace):
+      if type == TYPE_STDOUT:
+        self.full_trace[i] = (TYPE_STDOUT, output[offset:offset + length], None, None)
+        offset += length

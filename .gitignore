@@ -1,6 +1,8 @@
 naive
 *.so
 *.o
+*.out
+pin.log
 stat.csv
 __pycache__
 results
