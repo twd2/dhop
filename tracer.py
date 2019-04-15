@@ -22,6 +22,17 @@ parser.add_argument('-o', '--output', default='results/tracer',
 parser.add_argument('args', nargs='+', help='executable and its arguments')
 
 
+def my_print(data):
+  data = data.decode()
+  while True:
+    try:
+      sys.stdout.write(data)
+      sys.stdout.flush()
+      break
+    except BlockingIOError:
+      pass
+
+
 def main():
   try:
     os.makedirs(args.output)
@@ -29,7 +40,7 @@ def main():
     pass
   print('[INFO] Start')
   forkd = server.ForkServer(True, args.args, args.allocator)
-  forkd.hook_addr = 0x924
+  forkd.hook_addr = 0x924  # FIXME
   forkd.init()
   child_info = forkd.fork()
   ator = allocator.AbstractAllocator()
@@ -43,16 +54,12 @@ def main():
     while True:
       events = epoll.poll()
       if (sys.stdin.fileno(), select.EPOLLIN) in events:
-        ator.write(utils.read_leftovers(sys.stdin.fileno(), is_already_nonblock=True))
+        data = utils.read_leftovers(sys.stdin.fileno(), is_already_nonblock=True)
+        if not sys.stdin.isatty():
+          my_print(data)
+        ator.write(data)
       if (forkd.epoll.fileno(), select.EPOLLIN) in events:
-        data = ator.read_leftovers().decode()
-        while True:
-          try:
-            sys.stdout.write(data)
-            sys.stdout.flush()
-            break
-          except BlockingIOError:
-            pass
+        my_print(ator.read_leftovers())
   except allocator.ExitingError:
     pass
   print('[INFO] Exited.')
