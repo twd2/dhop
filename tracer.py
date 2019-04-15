@@ -69,6 +69,8 @@ def main():
       events = epoll.poll()
       if (sys.stdin.fileno(), select.EPOLLIN) in events:
         data = read_leftovers(sys.stdin.fileno(), is_already_nonblock=True)
+        if not data:
+          print('[DEBUG] stdin stream closed.')
         if not sys.stdin.isatty():
           my_print(data)
         ator.write(data)
@@ -82,7 +84,7 @@ def main():
   traces = trace.trace_slice(ator.full_trace)
   for t in traces:
     score = malloc_free_score(t)
-    print('=========== SLICE (score={}{}) ==========='.format('+' if score > 0 else '-', abs(score)))
+    print('=========== SLICE (score={}{}) ==========='.format('+' if score >= 0 else '-', abs(score)))
     trace.dump_trace(sys.stdout, t)
     print('========================================')
   forkd.kill()
