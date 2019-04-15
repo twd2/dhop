@@ -64,6 +64,7 @@ def main():
   set_nonblock(sys.stdin.fileno(), True)
   epoll.register(sys.stdin.fileno(), select.EPOLLIN)
   epoll.register(forkd.epoll.fileno(), select.EPOLLIN)
+  print('[INFO] Start interaction.')
   try:
     while True:
       events = epoll.poll()
