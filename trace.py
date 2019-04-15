@@ -4,6 +4,25 @@ import signal
 from utils import *
 
 
+def trace_slice(trace, do_combine=True):
+  slices = [[]]
+  for type, arg1, arg2, ret in trace:
+    last_slice = slices[-1]
+    if type in [TYPE_MALLOC, TYPE_CALLOC, TYPE_REALLOC, TYPE_FREE, TYPE_EXIT]:
+      last_slice.append((type, arg1, arg2, ret))
+    elif type in [TYPE_STDIN, TYPE_STDOUT]:
+      # Combine fragments.
+      if do_combine and last_slice and last_slice[-1][0] == type:
+        last_slice[-1] = (type, last_slice[-1][1] + arg1, None, None)
+      else:
+        last_slice.append((type, arg1, arg2, ret))
+    elif type == TYPE_MAIN_LOOP:
+      slices.append([])
+    else:
+      assert(False)
+  return slices
+
+
 def trace_to_layout(trace):
   regions = {}
   for type, arg1, arg2, ret in trace:
@@ -75,6 +94,7 @@ def dump_trace(fo, trace):
         fo.write('process crashed, code: {}\n'.format(ret))
     else:
       assert(False)
+
 
 if __name__ == '__main__':
   import sys

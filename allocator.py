@@ -179,6 +179,8 @@ class AbstractAllocator():
   def fix_output_trace(self):
     total_length = sum(map(lambda t: t[1] if t[0] == TYPE_STDOUT else 0, self.full_trace))
     output = b''.join(self.output_trace)
+    if len(output) != total_length:
+      print('[WARN] Expecting {}, gets {}.'.format(total_length, len(output)))
     output = output.ljust(total_length, b'?')
     offset = 0
     for i, (type, length, _, _) in enumerate(self.full_trace):
