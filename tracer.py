@@ -40,10 +40,12 @@ def my_print(data):
 def _malloc_free_score(trace):
   score = 0
   for type, arg1, arg2, ret in trace:
-    if type in [TYPE_MALLOC, TYPE_CALLOC, TYPE_REALLOC]:
+    if type in [TYPE_MALLOC, TYPE_CALLOC]:
       score += 1
     elif type in [TYPE_FREE]:
       score -= 1
+    elif type in [TYPE_REALLOC]:
+      score += -1 + 1
     elif type in [TYPE_STDIN, TYPE_STDOUT, TYPE_MAIN_LOOP, TYPE_EXIT]:
       pass
     else:
@@ -70,7 +72,8 @@ REF_RE = re.compile(br'^([^\d]*)((0x[\da-fA-F]+)|(\d+))([\d\D]*)$', re.MULTILINE
 
 def slices_to_spec(slices, read_prompt_after=True):
   # FIXME: This function is ugly, needs to be rewritten.
-  gen = specgen.SpecGen()
+  executable = os.path.realpath(args.args[0])
+  gen = specgen.SpecGen('This is a spec for {}.'.format(executable))
 
   # Init slice.
   init_stdout = b''
@@ -225,7 +228,7 @@ def main():
     pass
   print('[INFO] Start')
   forkd = server.ForkServer(True, args.args, args.allocator)
-  forkd.hook_addr = 0x998 # 0x924  # FIXME: magic
+  forkd.hook_addr = 0x998  # 0x998 # 0x924  # FIXME: magic
   forkd.init()
   child_info = forkd.fork()
   ator = allocator.AbstractAllocator()
@@ -254,7 +257,10 @@ def main():
   ator.fix_output_trace()
   write_results(args.output, ator, None, "tracer's ", '', True)
   slices = trace.trace_slice(ator.full_trace)
-  print(slices_to_spec(slices))
+  spec_code = slices_to_spec(slices)
+  with open('{}/spec.py'.format(args.output), 'w') as f:
+    f.write(spec_code)
+  print('[INFO] The spec code is written to {}/spec.py.'.format(args.output))
   forkd.kill()
   forkd.wait_for_exit()
   print('[INFO] Done.')

@@ -80,22 +80,22 @@ def write_results(result_dir, ator, ops, adj='', prefix='', write_full_trace=Fal
   if ops != None:
     with open('{}/{}opseq.txt'.format(result_dir, prefix), 'w') as f:
       opseq.dump_ops(f, ops)
-      print('[INFO] The {}operations sequence is written to {}/{}opseq.txt.' \
-            .format(adj, result_dir, prefix))
+    print('[INFO] The {}operations sequence is written to {}/{}opseq.txt.' \
+          .format(adj, result_dir, prefix))
   with open('{}/{}input.txt'.format(result_dir, prefix), 'wb') as f:
     f.write(b''.join(ator.input_trace))
-    print('[INFO] The {}input is written to {}/{}input.txt.'.format(adj, result_dir, prefix))
+  print('[INFO] The {}input is written to {}/{}input.txt.'.format(adj, result_dir, prefix))
   with open('{}/{}trace.txt'.format(result_dir, prefix), 'w') as f:
     trace.dump_trace(f, ator.allocator_trace)
-    print('[INFO] The {}trace is written to {}/{}trace.txt.'.format(adj, result_dir, prefix))
+  print('[INFO] The {}trace is written to {}/{}trace.txt.'.format(adj, result_dir, prefix))
   if write_full_trace:
     with open('{}/{}full_trace.txt'.format(result_dir, prefix), 'w') as f:
       trace.dump_trace(f, ator.full_trace)
-      print('[INFO] The {}full trace is written to {}/{}full_trace.txt.' \
-            .format(adj, result_dir, prefix))
+    print('[INFO] The {}full trace is written to {}/{}full_trace.txt.' \
+          .format(adj, result_dir, prefix))
   with open('{}/{}layout.txt'.format(result_dir, prefix), 'w') as f:
     trace.dump_layout(f, trace.trace_to_layout(ator.allocator_trace), ator.a_addr, ator.b_addr)
-    print('[INFO] The {}layout is written to {}/{}layout.txt.'.format(adj, result_dir, prefix))
+  print('[INFO] The {}layout is written to {}/{}layout.txt.'.format(adj, result_dir, prefix))
 
 
 def main():
