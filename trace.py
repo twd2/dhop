@@ -4,9 +4,11 @@ import signal
 from utils import *
 
 
-def trace_slice(trace, do_combine=True):
+def trace_slice(trace, do_combine=True, filter=lambda _: True):
   slices = [[]]
   for type, arg1, arg2, ret in trace:
+    if not filter(type):
+      continue
     last_slice = slices[-1]
     if type in [TYPE_MALLOC, TYPE_CALLOC, TYPE_REALLOC, TYPE_FREE, TYPE_EXIT]:
       last_slice.append((type, arg1, arg2, ret))

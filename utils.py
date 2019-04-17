@@ -61,3 +61,18 @@ def read_leftovers(fd, is_already_nonblock=False):
     fcntl.fcntl(fd, fcntl.F_SETFL, saved_flags)
   return buff
 
+
+def get_postfix(s, min_len=4):
+  # Get a postfix with the minimum length being min_len and having not appeared before.
+  postfix = s[-min_len:]
+  while postfix in s[:-1]:
+    min_len += 1
+    postfix = s[-min_len:]
+  return postfix
+
+
+def list_in_str(l, s):
+  for item in l:
+    if item in s:
+      return True
+  return False
