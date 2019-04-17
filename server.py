@@ -116,6 +116,8 @@ class ForkServer():
     while True:
       events = []
       while (self.inspect_fd, select.EPOLLIN) not in events:
+        if (self.stdout_fd, select.EPOLLIN) in events:
+          print('[DEBUG] What\'s this?', read_leftovers(self.stdout_fd, is_already_nonblock=True))
         events = self.epoll.poll()
       type, _, _, child_pid = read_packet(self.inspect_fd)
       if type == TYPE_PID:

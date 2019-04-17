@@ -13,8 +13,9 @@
 #include <unistd.h>
 
 #ifdef DO_HOOK
-#include <sys/mman.h>
 // TODO: #include <asm/cachectl.h>
+#include <sys/mman.h>
+
 #include <capstone/capstone.h>
 #endif // DO_HOOK
 
@@ -142,6 +143,7 @@ static void init(void)
   setvbuf(stdin, NULL, _IONBF, 0);
   setvbuf(stdout, NULL, _IONBF, 0);
   setvbuf(stderr, NULL, _IONBF, 0);
+
 #ifdef DO_HOOK
   // Install hooks.
   packet_t packet = { .type = TYPE_READY, .arg1 = 0, .arg2 = 0, .ret = 0 };
@@ -162,6 +164,7 @@ static void init(void)
   hook_init(&write_hook_ctx, libc_write, 32);
   hook_set_func(&write_hook_ctx, write_hook, hook_do_next);
 #endif // DO_HOOK
+
   // Load symbols.
   malloc_ptr_t dl_malloc = dlsym(RTLD_NEXT, "malloc");
   calloc_ptr_t dl_calloc = dlsym(RTLD_NEXT, "calloc");
@@ -178,6 +181,7 @@ static void init(void)
   orig_calloc = dl_calloc;
   orig_realloc = dl_realloc;
   orig_free = dl_free;
+
 #ifdef FORK_SERVER
   fork_server();
 #endif // FORK_SERVER
@@ -261,6 +265,7 @@ static void fork_server(void)
 {
   packet_t packet = { .type = TYPE_READY, .arg1 = 0, .arg2 = 0, .ret = 0 };
   send_packet(&packet);
+
   char buf;
   // Wait for a request.
   while (READ(SERVER_FD, &buf, 1) == 1)
@@ -380,31 +385,32 @@ static void hook_init(hook_ctx_t *ctx, uint8_t *code, size_t len)
                asm_offset_hook_ret = asm_hook_ret - asm_code,
                asm_len = asm_code_end - asm_code;
   UNUSED(asm_offset_do_hook);
+
   ctx->inst_len = get_inst_length(code, len, JMP_SIZE);
   ctx->inst = code;
   ctx->next_inst = code + ctx->inst_len;
+  // Save old instruction bytes.
   memcpy(ctx->inst_backup, ctx->inst, JMP_SIZE);
   memcpy(ctx->next_inst_backup, ctx->next_inst, JMP_SIZE);
 
   ctx->hook_code = mmap_near(ctx->inst, PAGE_SIZE, PROT_READ | PROT_WRITE);
-  // copy hook code
+  // Copy hook code.
   memcpy(ctx->hook_code, asm_code, asm_len);
-  // do relocate
+  // Do relocate.
   *(uint64_t *)(ctx->hook_code + asm_offset_ctx) = (uint64_t)ctx;
   *(int32_t *)(ctx->hook_code + asm_offset_hook_ret) +=
       (uintptr_t)ctx->inst - ((uintptr_t)ctx->hook_code + asm_offset_hook_ret);
   ctx->hook = ctx->hook_code + asm_offset_hook_entry;
   hook_inst(ctx);
 
-  // for next hook
+  // For the next hook.
   ctx->next_hook_code = ctx->hook_code + ((asm_len + 15) & ~15); // do not mmap a new page
-  // copy hook code
+  // Copy hook code.
   memcpy(ctx->next_hook_code, asm_code, asm_len);
-  // do relocate
+  // Do relocate.
   *(uint64_t *)(ctx->next_hook_code + asm_offset_ctx) = (uint64_t)ctx;
   *(int32_t *)(ctx->next_hook_code + asm_offset_hook_ret) +=
       (uintptr_t)ctx->next_inst - ((uintptr_t)ctx->next_hook_code + asm_offset_hook_ret);
-  // install hook
   ctx->next_hook = ctx->next_hook_code + asm_offset_hook_entry;
   mprotect(ctx->hook_code, PAGE_SIZE, PROT_READ | PROT_EXEC);
   hook_set_func(ctx, hook_die, hook_die);
@@ -441,9 +447,10 @@ static void hook_inst(hook_ctx_t *ctx)
   HOOK_PROLOGUE();
   // jmp to hook entry
   *ctx->inst = 0xe9;
+  // Do relocate.
   *(int32_t *)(ctx->inst + 1) =
       (int32_t)((uintptr_t)ctx->hook - ((uintptr_t)ctx->inst + JMP_SIZE));
-  // unhook other inst
+  // Uninstall other hooks.
   memcpy(ctx->next_inst, ctx->next_inst_backup, JMP_SIZE);
   HOOK_EPILOGUE();
 }
@@ -453,9 +460,10 @@ static void hook_next_inst(hook_ctx_t *ctx)
   HOOK_PROLOGUE();
   // jmp to hook entry
   *ctx->next_inst = 0xe9;
+  // Do relocate.
   *(int32_t *)(ctx->next_inst + 1) =
       (int32_t)((uintptr_t)ctx->next_hook - ((uintptr_t)ctx->next_inst + JMP_SIZE));
-  // unhook other inst
+  // Uninstall other hooks.
   memcpy(ctx->inst, ctx->inst_backup, JMP_SIZE);
   HOOK_EPILOGUE();
 }
@@ -463,6 +471,7 @@ static void hook_next_inst(hook_ctx_t *ctx)
 static void hook_clear(hook_ctx_t *ctx)
 {
   HOOK_PROLOGUE();
+  // Uninstall hooks.
   memcpy(ctx->inst, ctx->inst_backup, JMP_SIZE);
   memcpy(ctx->next_inst, ctx->next_inst_backup, JMP_SIZE);
   HOOK_EPILOGUE();
@@ -493,7 +502,7 @@ static void loop_hook(hook_ctx_t *ctx, regs_t *regs)
 
 static void write_hook(hook_ctx_t *ctx, regs_t *regs)
 {
-  hook_clear(ctx); // uninstall the hook, because we are going to use write().
+  hook_clear(ctx); // Uninstall the hook, because we are going to use write().
   int fd = (int)regs->rdi;
   void *buf = (void *)regs->rsi;
   size_t len = (size_t)regs->rdx;
