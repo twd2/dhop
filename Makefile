@@ -1,5 +1,5 @@
 .PHONY: all
-all: test/naive wrapper.so wrapper_hook.so allocator/simplemalloc/simplemalloc.so
+all: test/naive test/usermgmt wrapper.so wrapper_hook.so allocator/simplemalloc/simplemalloc.so
 
 test/%: test/%.c
 	gcc -O2 -Wall $^ -o $@
@@ -30,5 +30,5 @@ kill:
 
 .PHONY: clean
 clean:
-	-rm test/naive *.o *.so allocator/*/*.so
+	-rm test/naive test/usermgmt *.o *.so allocator/*/*.so
 
