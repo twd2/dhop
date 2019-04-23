@@ -1,0 +1,16 @@
+void foo1(void) {}
+void foo2(void) {}
+void foo3(void) {}
+void foo4(void) {}
+void foo5(void) {}
+void foo6(void) {}
+void foo7(void) {}
+void foo8(void) {}
+void bar1(void) {}
+void bar2(void) {}
+void bar3(void) {}
+void bar4(void) {}
+void bar5(void) {}
+void bar6(void) {}
+void bar7(void) {}
+void bar8(void) {}

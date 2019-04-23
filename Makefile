@@ -1,8 +1,17 @@
 .PHONY: all
-all: test/naive test/usermgmt wrapper.so wrapper_hook.so allocator/simplemalloc/simplemalloc.so
+all: test/naive test/usermgmt test/switchtest test/switchtest-nopie wrapper.so wrapper_hook.so allocator/simplemalloc/simplemalloc.so
 
 test/%: test/%.c
 	gcc -O2 -Wall $^ -o $@
+
+test/switchtest: test/switchtest.c test/foo.o
+	gcc -O2 -Wall $^ -o $@
+
+test/switchtest-nopie: test/switchtest.c test/foo.o
+	gcc -fno-PIC -no-pie -O2 -Wall $^ -o $@
+
+test/%.o: test/%.c
+	gcc -O2 -Wall -c $^ -o $@
 
 %.so: %.c
 	gcc -O2 -Wall -fno-stack-protector -fPIC -shared $^ -o $@ -ldl
@@ -30,5 +39,5 @@ kill:
 
 .PHONY: clean
 clean:
-	-rm test/naive test/usermgmt *.o *.so allocator/*/*.so
+	-rm test/naive test/usermgmt test/switchtest test/switchtest-nopie test/*.o *.o *.so allocator/*/*.so
 

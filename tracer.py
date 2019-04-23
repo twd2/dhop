@@ -178,7 +178,6 @@ def slices_to_spec(slices, read_prompt_after=True):
       remaining_stdout = stdio_trace_by_type[TYPE_STDOUT][len(stdio_trace_by_type[TYPE_STDIN])][1]
       match = REF_RE.match(remaining_stdout)
       if match:
-        print(match)
         prefix = match.group(1)
         ref = match.group(2)
         postfix = match.group(5)
@@ -228,7 +227,7 @@ def main():
     pass
   print('[INFO] Start')
   forkd = server.ForkServer(True, args.args, args.allocator)
-  forkd.hook_addr = 0x998  # 0x998 # 0x924  # FIXME: magic
+  forkd.hook_addr = 0x924  # 0x998 # 0x924  # FIXME: magic
   forkd.init()
   child_info = forkd.fork()
   ator = allocator.AbstractAllocator()

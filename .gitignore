@@ -1,5 +1,7 @@
 naive
 usermgmt
+switchtest
+switchtest-nopie
 *.so
 *.o
 *.out
