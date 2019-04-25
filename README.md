@@ -10,7 +10,7 @@
 * [Python 3](https://www.python.org/downloads/)
 * GCC (`sudo apt install gcc g++ make`)
 * [Capstone Engine](https://github.com/aquynh/capstone) (`sudo apt install libcapstone-dev`)
-* [RetDec](https://github.com/avast/retdec)
+* [RetDec](https://github.com/avast/retdec) or [IDA Pro](https://www.hex-rays.com/cgi-bin/quote.cgi)
 
 ## Usage
 

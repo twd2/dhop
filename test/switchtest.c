@@ -70,7 +70,10 @@ int main(int argc, char **argv)
       bar4();
       break;
     case 5:
-      bar5();
+      for (int i = 1; i < argv[argc][2]; ++i)
+      {
+        bar5();
+      }
       break;
     case 6:
       bar6();
@@ -85,6 +88,14 @@ int main(int argc, char **argv)
       return 1;
       break;
     }
+    for (int i = 0; i < argv[argc][2]; ++i)
+    {
+      foo1();
+    }
+  }
+  for (int i = 0; i < argv[argc][3]; ++i)
+  {
+    bar1();
   }
   return 0;
 }

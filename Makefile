@@ -1,5 +1,9 @@
 .PHONY: all
-all: test/naive test/usermgmt test/switchtest test/switchtest-nopie wrapper.so wrapper_hook.so allocator/simplemalloc/simplemalloc.so
+all: loop-finder/build/loop-finder test/naive test/usermgmt test/switchtest test/switchtest-nopie wrapper.so wrapper_hook.so allocator/simplemalloc/simplemalloc.so
+
+.PHONY: loop-finder/build/loop-finder
+loop-finder/build/loop-finder:
+	cd loop-finder && mkdir -p build && cd build && cmake -DCMAKE_BUILD_TYPE=Debug .. && make
 
 test/%: test/%.c
 	gcc -O2 -Wall $^ -o $@
@@ -39,5 +43,6 @@ kill:
 
 .PHONY: clean
 clean:
+	-rm -r loop-finder/build
 	-rm test/naive test/usermgmt test/switchtest test/switchtest-nopie test/*.o *.o *.so allocator/*/*.so
 
