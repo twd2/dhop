@@ -5,6 +5,7 @@ import sys
 
 
 def find_loop_ida(ida_dir, executable, result_dir):
+  print('[INFO] Start analyzing the input file using IDA Pro...')
   raise NotImplementedError()
 
 
@@ -16,10 +17,16 @@ def find_loop_retdec(retdec_dir, executable, result_dir):
   sys.stdout.flush()
   retdec_result = subprocess.run(['python3', retdec_dir + '/bin/retdec-decompiler.py',
                                   '--stop-after', 'bin2llvmir', '-o', result_file, executable])
-  print('[INFO] Looking for the main loop in the input file...')
+  if retdec_result.returncode != 0:
+    print('[ERROR] RetDec failed.')
+    exit(1)
+  print('[INFO] Finding the main loop in the input file...')
   sys.stdout.flush()
   lf_result = subprocess.run([current_dir + '/loop-finder/build/loop-finder', result_file],
                              stdout=subprocess.PIPE, encoding='UTF-8')
+  if lf_result.returncode != 0:
+    print('[ERROR] Loop finder failed.')
+    exit(1)
   lf_out = lf_result.stdout
   print('[DEBUG] Loop finder\'s output:')
   print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
@@ -44,11 +51,11 @@ def find_loop_retdec(retdec_dir, executable, result_dir):
   if main_func != None:
     print('[INFO] The main function is at {}.'.format(hex(main_func)))
   else:
-    print('[INFO] The main function is not found. :(')
+    print('[WARN] The main function is not found. :(')
   if main_loop != None:
     print('[INFO] The entry basic block of the main loop should be at {}.'.format(hex(main_loop)))
   else:
-    print('[INFO] The main loop is not found. :(')
+    print('[WARN] The main loop is not found. :(')
   return entry_point, main_func, main_loop
 
 

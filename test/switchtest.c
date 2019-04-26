@@ -23,9 +23,13 @@ int main(int argc, char **argv)
   setvbuf(stdin, NULL, _IONBF, 0);
   setvbuf(stdout, NULL, _IONBF, 0);
   setvbuf(stderr, NULL, _IONBF, 0);
-  while (argc--)
+  int count;
+  scanf("%d", &count);
+  while (count--)
   {
-    switch (argv[argc][0])
+    int a, b;
+    scanf("%d%d", &a, &b);
+    switch (a)
     {
     case 1:
       foo1();
@@ -55,7 +59,7 @@ int main(int argc, char **argv)
       return 1;
       break;
     }
-    switch (argv[argc][1])
+    switch (b)
     {
     case 1:
       bar1();
@@ -70,11 +74,15 @@ int main(int argc, char **argv)
       bar4();
       break;
     case 5:
-      for (int i = 1; i < argv[argc][2]; ++i)
+    {
+      int c;
+      scanf("%d", &c);
+      for (int i = 0; i < c; ++i)
       {
         bar5();
       }
       break;
+    }
     case 6:
       bar6();
       break;
@@ -88,12 +96,13 @@ int main(int argc, char **argv)
       return 1;
       break;
     }
-    for (int i = 0; i < argv[argc][2]; ++i)
+    for (int i = 0; i < a + b; ++i)
     {
       foo1();
     }
   }
-  for (int i = 0; i < argv[argc][3]; ++i)
+  scanf("%d", &count);
+  for (int i = 0; i < count; ++i)
   {
     bar1();
   }

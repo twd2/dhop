@@ -151,7 +151,7 @@ void find_main_loop(Module &mod)
     {
       continue;
     }
-    std::cout << "[DEBUG] Find a loop starts with " << get_name(*loop->getHeader()) << " having "
+    std::cout << "[DEBUG] Find a loop starting with " << get_name(*loop->getHeader()) << " having "
               << loop->getNumBlocks() << " blocks" << std::endl;
     if (loop->getNumBlocks() > max_blocks)
     {

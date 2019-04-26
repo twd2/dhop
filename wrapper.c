@@ -494,7 +494,7 @@ static void hook_do_next(hook_ctx_t *ctx, regs_t *regs)
 static void loop_hook(hook_ctx_t *ctx, regs_t *regs)
 {
   UNUSED(regs);
-  // puts("[HOOK] The main loop iterates.");
+  puts("[HOOK] The main loop iterates.");
   packet_t packet = { .type = TYPE_MAIN_LOOP, .arg1 = 0, .arg2 = 0, .ret = 0 };
   send_packet(&packet);
   hook_next_inst(ctx);

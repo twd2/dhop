@@ -15,7 +15,7 @@ class ForkServer():
     self.args = args
     self.malloc_so = malloc_so
     self.executable = os.path.realpath(args[0])
-    self.hook_addr = None
+    self.hook_offset = None
     inspect_fd_r, inspect_fd_w = os.pipe2(0)
     server_fd_r, server_fd_w = os.pipe2(0)
     stdin_fd_r, stdin_fd_w = os.pipe2(0)
@@ -87,8 +87,8 @@ class ForkServer():
     print('[INFO] Section .text is beginning at {}.'.format(hex(self.section_text_begin)))
 
   def _set_hook(self):
-    if self.hook_addr != None:
-      hook_addr = self.section_text_begin + self.hook_addr
+    if self.hook_offset != None:
+      hook_addr = self.section_text_begin + self.hook_offset
     else:
       hook_addr = 0
     os.write(self.server_fd, struct.pack('<Q', hook_addr))

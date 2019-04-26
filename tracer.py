@@ -9,6 +9,7 @@ import select
 import sys
 
 import allocator
+import loop_finder
 import opseq
 import server
 import specgen
@@ -22,6 +23,16 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-a', '--allocator', help='specify the allocator library (.so)')
 parser.add_argument('-o', '--output', default='results/tracer',
                     help='specify the result directory, default: results/tracer')
+parser.add_argument('-l', '--loop', default='auto',
+                    help='specify the offset of the main loop '
+                         '(auto / off / ADDRESS, default: auto)')
+tool_group = parser.add_mutually_exclusive_group()
+tool_group.add_argument('--ida',
+                        help='specify the path of IDA Pro if you want to use IDA Pro '
+                             'to find the main loop (default: empty)')
+tool_group.add_argument('--retdec', default='/opt/retdec',
+                        help='specify the path of RetDec if you want to use RetDec '
+                             'to find the main loop (default: /opt/retdec)')
 parser.add_argument('args', nargs='+', help='executable and its arguments')
 
 
@@ -225,9 +236,29 @@ def main():
     os.makedirs(args.output)
   except FileExistsError:
     pass
-  print('[INFO] Start')
+  executable = os.path.realpath(args.args[0])
+  if args.loop == 'off':
+    hook_offset = None
+  elif args.loop == 'auto':
+    if args.ida:
+      entry_point, main_func, main_loop = \
+          loop_finder.find_loop_ida(args.ida, executable, args.output)
+    else:
+      assert(bool(args.retdec))
+      entry_point, main_func, main_loop = \
+          loop_finder.find_loop_retdec(args.retdec, executable, args.output)
+    if main_loop != None:
+      vm_base = entry_point & ~0xfff  # FIXME: magic
+      hook_offset = main_loop - vm_base
+    else:
+      hook_offset = None
+  else:
+    hook_offset = int(args.loop, 16)  # 0x998 # 0x924  # FIXME: magic
+  print('[INFO] Start a fork server.')
   forkd = server.ForkServer(True, args.args, args.allocator)
-  forkd.hook_addr = 0x924  # 0x998 # 0x924  # FIXME: magic
+  if hook_offset != None:
+    print('[INFO] Setting a hook at offset {}.'.format(hex(hook_offset)))
+    forkd.hook_offset = hook_offset
   forkd.init()
   child_info = forkd.fork()
   ator = allocator.AbstractAllocator()
