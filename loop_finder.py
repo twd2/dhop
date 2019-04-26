@@ -6,6 +6,38 @@ import sys
 from utils import *
 
 
+def _parse_output(out):
+  clog('debug', 'Loop finder\'s output:')
+  print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
+  print(out)
+  print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
+
+  main_func = None
+  main_loop = None
+  for line in out.split('\n'):
+    parts = line.split()
+    if len(parts) < 3:
+      continue
+    if parts[1] == 'main' and 'not found' not in line:
+      main_func = int(parts[-1], 16)
+    if parts[1] == 'entry':
+      main_loop = int(parts[-1], 16)
+
+  with open(result_file[:-2] + 'json', 'r') as f:
+    obj = json.load(f)
+    entry_point = int(obj['entryPoint'], 16)
+  clog('info', 'The entry point is at {}.', hex(entry_point))
+  if main_func != None:
+    clog('info', 'The main function is at {}.', hex(main_func))
+  else:
+    clog('warn', 'The main function is not found. :(')
+  if main_loop != None:
+    clog('info', 'The entry basic block of the main loop should be at {}.', hex(main_loop))
+  else:
+    clog('warn', 'The main loop is not found. :(')
+  return entry_point, main_func, main_loop
+
+
 def find_loop_ida(ida_dir, executable, result_dir):
   clog('info', 'Start analyzing the input file using IDA Pro...')
   raise NotImplementedError()
@@ -29,36 +61,7 @@ def find_loop_retdec(retdec_dir, executable, result_dir):
   if lf_result.returncode != 0:
     clog('error', 'Loop finder failed.')
     exit(1)
-  lf_out = lf_result.stdout
-  clog('debug', 'Loop finder\'s output:')
-  print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
-  print(lf_out)
-  print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
-
-  main_func = None
-  main_loop = None
-  for line in lf_out.split('\n'):
-    parts = line.split()
-    if len(parts) < 3:
-      continue
-    if parts[1] == 'main' and 'not found' not in line:
-      main_func = int(parts[-1], 16)
-    if parts[1] == 'entry':
-      main_loop = int(parts[-1], 16)
-
-  with open(result_file[:-2] + 'json', 'r') as f:
-    obj = json.load(f)
-    entry_point = int(obj['entryPoint'], 16)
-  clog('info', 'The entry point is at {}.', hex(entry_point))
-  if main_func != None:
-    clog('info', 'The main function is at {}.', hex(main_func))
-  else:
-    clog('warn', 'The main function is not found. :(')
-  if main_loop != None:
-    clog('info', 'The entry basic block of the main loop should be at {}.', hex(main_loop))
-  else:
-    clog('warn', 'The main loop is not found. :(')
-  return entry_point, main_func, main_loop
+  return _parse_output(lf_result.stdout)
 
 
 if __name__ == '__main__':
