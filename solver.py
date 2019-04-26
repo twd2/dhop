@@ -15,6 +15,8 @@ import opseq
 import server
 import trace
 
+from utils import *
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-a', '--allocator', help='specify the allocator library (.so)')
@@ -80,44 +82,42 @@ def write_results(result_dir, ator, ops, adj='', prefix='', write_full_trace=Fal
   if ops != None:
     with open('{}/{}opseq.txt'.format(result_dir, prefix), 'w') as f:
       opseq.dump_ops(f, ops)
-    print('[INFO] The {}operations sequence is written to {}/{}opseq.txt.' \
-          .format(adj, result_dir, prefix))
+    clog('ok', 'The {}operations sequence is written to {}/{}opseq.txt.', adj, result_dir, prefix)
   with open('{}/{}input.txt'.format(result_dir, prefix), 'wb') as f:
     f.write(b''.join(ator.input_trace))
-  print('[INFO] The {}input is written to {}/{}input.txt.'.format(adj, result_dir, prefix))
+  clog('ok', 'The {}input is written to {}/{}input.txt.', adj, result_dir, prefix)
   with open('{}/{}trace.txt'.format(result_dir, prefix), 'w') as f:
     trace.dump_trace(f, ator.allocator_trace)
-  print('[INFO] The {}trace is written to {}/{}trace.txt.'.format(adj, result_dir, prefix))
+  clog('ok', 'The {}trace is written to {}/{}trace.txt.', adj, result_dir, prefix)
   if write_full_trace:
     with open('{}/{}full_trace.txt'.format(result_dir, prefix), 'w') as f:
       trace.dump_trace(f, ator.full_trace)
-    print('[INFO] The {}full trace is written to {}/{}full_trace.txt.' \
-          .format(adj, result_dir, prefix))
+    clog('ok', 'The {}full trace is written to {}/{}full_trace.txt.', adj, result_dir, prefix)
   with open('{}/{}layout.txt'.format(result_dir, prefix), 'w') as f:
     trace.dump_layout(f, trace.trace_to_layout(ator.allocator_trace), ator.a_addr, ator.b_addr)
-  print('[INFO] The {}layout is written to {}/{}layout.txt.'.format(adj, result_dir, prefix))
+  clog('ok', 'The {}layout is written to {}/{}layout.txt.', adj, result_dir, prefix)
 
 
 def main():
   ator_spec = get_class('spec', args.spec, 'Allocator')
   if not ator_spec:
-    print('[ERROR] No such spec named "{}".'.format(args.spec))
+    clog('error', 'No such spec named "{}".', args.spec)
     exit(1)
   else:
-    print('[INFO] Using spec named "{}".'.format(args.spec))
+    clog('info', 'Using spec named "{}".', args.spec)
   Solver = get_class('solver', args.solver, 'Solver')
   if not Solver:
-    print('[ERROR] No such solver named "{}".'.format(args.solver))
+    clog('error', 'No such solver named "{}".', args.solver)
     exit(1)
   else:
-    print('[INFO] Using solver named "{}".'.format(args.solver))
+    clog('info', 'Using solver named "{}".', args.solver)
   do_optimize = not args.no_optimize
   try:
     os.makedirs(args.output)
   except FileExistsError:
     pass
   solver = Solver(*args.solver_args)
-  print('[INFO] Start')
+  clog('info', 'Start')
   forkd = server.ForkServer(False, args.args, args.allocator)
   forkd.init()
   seed_count = 0
@@ -141,12 +141,14 @@ def main():
         loss = ator.loss()
         if loss == 0:
           end_time = time.time()
-          print('\n[INFO] loss = 0\n[INFO] Congratulations! The desired heap layout is achieved.')
+          clog('', '')
+          clog('info', 'loss = 0')
+          clog('ok', 'Congratulations! The desired heap layout is achieved.')
           write_results(args.output, ator, ops)
           if do_optimize:
-            print('[INFO] Optimizing results... ', end='')
+            clog('info', 'Optimizing results... ', end='')
             ator, ops = optimize_ops(forkd, ator_spec, ops)
-            print('done!')
+            clog('', 'done!')
             write_results(args.output, ator, ops, 'optimized ', 'opt_')
           solved = True
           done = True
@@ -159,20 +161,22 @@ def main():
       current_time = time.time()
       if current_time - last_time >= 1.0:
         last_time = current_time
-        print('\r[INFO] {} executions / sec, {} crashes, {} executions totally, loss = {}    '
-              .format(eps, crashes, total, min_loss), end='')
+        clog('', '\r', end='')
+        clog('info', '{} executions / sec, {} crashes, {} executions totally, loss = {}    ',
+             eps, crashes, total, min_loss, end='')
         eps = 0
         if current_time - begin_time >= args.timeout:
           end_time = time.time()
-          print('\n[WARN] Timed out.')
+          clog('', '')
+          clog('warn', 'Timed out.')
           solved = False
           done = True
           break
   forkd.kill()
   forkd.wait_for_exit()
   time_usage = end_time - begin_time
-  print('[INFO] {} crashes, {} executions totally, {:.6f} seconds, {:.2f} executions / sec'
-        .format(crashes, total, time_usage, total / time_usage))
+  clog('info', '{} crashes, {} executions totally, {:.6f} seconds, {:.2f} executions / sec',
+       crashes, total, time_usage, total / time_usage)
   with open('{}/stat.csv'.format(args.output), 'w') as f:
     f.write('{},{},{},{},{},{},{},{},{},{},{},{}\n'.format(
               args.output,
@@ -188,8 +192,8 @@ def main():
               time_usage,
               total / time_usage
             ))
-  print('[INFO] The summary is written to {}/stat.csv.'.format(args.output))
-  print('[INFO] Exiting...')
+  clog('ok', 'The summary is written to {}/stat.csv.', args.output)
+  clog('info', 'Exiting...')
   return 0
 
 

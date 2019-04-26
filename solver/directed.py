@@ -7,6 +7,8 @@ import sys
 import opseq
 import trace
 
+from utils import *
+
 
 def calc_priority(prev_priority, loss, layout):
   return min(loss, prev_priority)
@@ -27,7 +29,7 @@ class Solver():
     else:
       keys = list(self.buckets.keys())
       weights = list(map(lambda k: math.exp(-k / 16), keys))
-      #print('[DEBUG] Seeds and their weights:', keys, weights)
+      # clog('debug', 'Seeds and their weights: {} {}', keys, weights)
       key = random.choices(keys, weights)[0]
       self.last_seed_priority, seed = random.choice(self.buckets[key])
       candidates = []
@@ -40,17 +42,17 @@ class Solver():
   def update_result(self, ops, ator):
     loss = ator.loss()
     if self.new_seed_ratio < 1.0:
-      '''if loss == 16:
-        if random.randint(0, 99) == 0:
-          print('[DEBUG] current loss =', loss)
-          print('[DEBUG] Trace:')
+      if loss == 16:
+        '''if random.randint(0, 99) == 0:
+          clog('debug', 'current loss = {}', loss)
+          clog('debug', 'Trace:')
           trace.dump_trace(sys.stdout, ator.allocator_trace)'''
       priority = calc_priority(self.last_seed_priority, loss, None)  # TODO: layout
       if priority != loss:
-        #print('[DEBUG] loss={}, priority={}'.format(loss, priority))
+        # clog('debug', 'loss={}, priority={}', loss, priority)
         pass
       if loss < self.min_loss or priority in self.buckets:
-        # print('[DEBUG] New seed added.')
+        # clog('debug', 'New seed added.')
         self.buckets[priority].append((priority, ops))
         self.seed_count += 1
       if loss < self.min_loss:

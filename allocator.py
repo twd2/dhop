@@ -41,11 +41,13 @@ class AbstractAllocator():
     for t in trace:
       if t[0] in [TYPE_MALLOC, TYPE_CALLOC, TYPE_REALLOC, TYPE_FREE, TYPE_EXIT]:
         self.allocator_trace.append(t)
+      # if t[0] == TYPE_MAIN_LOOP:
+      #   print('[HOOK] The main loop iterates.')
     if self.record_full_trace:
       self.full_trace.extend(trace)
     for type, _, _, _ in trace:
       if type == TYPE_EXIT:
-        # print('[WARN] target problem exited!')
+        # clog('warn', 'target problem exited!')
         raise ExitingError()
 
   def init(self):
@@ -180,7 +182,7 @@ class AbstractAllocator():
     total_length = sum(map(lambda t: t[1] if t[0] == TYPE_STDOUT else 0, self.full_trace))
     output = b''.join(self.output_trace)
     if len(output) != total_length:
-      print('[WARN] Expecting {}, gets {}.'.format(total_length, len(output)))
+      clog('warn', 'Expecting {}, gets {}.', total_length, len(output))
     output = output.ljust(total_length, b'?')
     offset = 0
     for i, (type, length, _, _) in enumerate(self.full_trace):

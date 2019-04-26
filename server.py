@@ -57,11 +57,12 @@ class ForkServer():
       self.stdout_fd = stdout_fd_r
 
   def wait_for_ready(self):
-    print('[INFO] Waiting for the fork server... ', end='')
+    clog('info', 'Waiting for the fork server... ', end='')
     sys.stdout.flush()
     events = self.epoll.poll()
     if events != [(self.inspect_fd, select.EPOLLIN)]:
-      print('something goes wrong. :(\n[DEBUG] Output of the fork server:')
+      clog('', 'something goes wrong. :(')
+      clog('debug', 'Output of the fork server:')
       while True:
         print(read_leftovers(self.stdout_fd, is_already_nonblock=True).decode(), end='')
         self.epoll.poll()
@@ -70,7 +71,7 @@ class ForkServer():
       if type == TYPE_READY:
         break
       self.epoll.poll()
-    print('ready!')
+    clog('', 'ready!')
 
   def _find_section_text(self):
     self.section_text_begin = 0
@@ -84,7 +85,7 @@ class ForkServer():
         vmend = int(vmend, 16)
         if 'x' in prot and os.path.realpath(filename) == self.executable:
           self.section_text_begin = vmbegin
-    print('[INFO] Section .text is beginning at {}.'.format(hex(self.section_text_begin)))
+    clog('info', 'Section .text is beginning at {}.', hex(self.section_text_begin))
 
   def _set_hook(self):
     if self.hook_offset != None:
@@ -94,7 +95,7 @@ class ForkServer():
     os.write(self.server_fd, struct.pack('<Q', hook_addr))
 
   def init(self):
-    print('[DEBUG] fork server pid is', self.server_pid)
+    clog('debug', 'fork server pid is {}.', self.server_pid)
     # Create an epoll object for 2 fds.
     fds = [self.inspect_fd, self.stdout_fd]
     self.epoll = select.epoll(len(fds))
@@ -117,14 +118,15 @@ class ForkServer():
       events = []
       while (self.inspect_fd, select.EPOLLIN) not in events:
         if (self.stdout_fd, select.EPOLLIN) in events:
-          print('[DEBUG] What\'s this?', read_leftovers(self.stdout_fd, is_already_nonblock=True))
+          clog('debug', 'What\'s this? {}',
+               read_leftovers(self.stdout_fd, is_already_nonblock=True))
         events = self.epoll.poll()
       type, _, _, child_pid = read_packet(self.inspect_fd)
       if type == TYPE_PID:
-        # print('[INFO] child pid', child_pid)
+        # clog('info', 'child pid {}', child_pid)
         break
       else:
-        print('[WARN] something wrong, received type {} rather than TYPE_READY.'.format(type))
+        clog('warn', 'something wrong, received type {} rather than TYPE_READY.', type)
     # Allow the child to continue.
     os.write(self.server_fd, b'A')  # an arbitrary char
     return child_pid, self.inspect_fd, self.stdin_fd, self.stdout_fd, self.epoll

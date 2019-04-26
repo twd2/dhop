@@ -108,12 +108,12 @@ def slices_to_spec(slices, read_prompt_after=True):
     choice_prompt, _ = max(choice_prompts.items(), key=lambda t: t[1])
   else:
     choice_prompt = b''
-  print('[INFO] The choice prompt is {}.'.format(repr(choice_prompt.decode())))
+  clog('info', 'The choice prompt is {}.', repr(choice_prompt.decode()))
   if read_prompt_after and choice_prompt:
     gen.init_code += '    self.read_until({})\n'.format(repr(get_postfix(choice_prompt)))
 
   for slice in slices[1:]:
-    print('[INFO] Processing the following slice:')
+    clog('info', 'Processing the following slice:')
     score = _malloc_free_score(slice)
     print('~~~~~~~~~~ SLICE (score = {}{}) ~~~~~~~~~~' \
           .format('+' if score >= 0 else '-', abs(score)))
@@ -125,7 +125,7 @@ def slices_to_spec(slices, read_prompt_after=True):
     for t in stdio_slice:
       stdio_trace_by_type[t[0]].append(t)
     choice_str = stdio_trace_by_type[TYPE_STDIN][0][1]
-    print('[INFO] The input to trigger this choice is {}.'.format(repr(choice_str.decode())))
+    clog('info', 'The input to trigger this choice is {}.', repr(choice_str.decode()))
 
     if read_prompt_after or not choice_prompt:
       code = ''
@@ -160,13 +160,12 @@ def slices_to_spec(slices, read_prompt_after=True):
          _size_in_trace(len(input) - 1, slice) or \
          _size_in_trace(len(input) + 1, slice):
         scores['buffer'] += 1
-      print('[DEBUG] Scores:', scores)
+      clog('debug', 'Scores: {}', scores)
       type, max_score = max(scores.items(), key=lambda t: t[1])
       if max_score > 0:
-        print('[INFO] The field with prompt {} is considered as a {}.' \
-              .format(repr(prompt), type))
+        clog('info', 'The field with prompt {} is considered as a {}.', repr(prompt), type)
       else:
-        print('[INFO] The field with prompt {} is not a field.'.format(repr(prompt)))
+        clog('info', 'The field with prompt {} is not a field.', repr(prompt))
       code += '    self.read_until({})\n'.format(repr(get_postfix(raw_prompt)))
       if max_score == 0:
         code += '    self.write({})\n'.format(repr(raw_input))
@@ -183,7 +182,7 @@ def slices_to_spec(slices, read_prompt_after=True):
     has_return = False
     has_unknown_return = False
     if len(stdio_trace_by_type[TYPE_STDOUT]) > len(stdio_trace_by_type[TYPE_STDIN]):
-      print('[INFO] A possible return value detected.')
+      clog('info', 'A possible return value detected.')
       assert(len(stdio_trace_by_type[TYPE_STDOUT]) == len(stdio_trace_by_type[TYPE_STDIN]) + 1)
       # Parse return value.
       remaining_stdout = stdio_trace_by_type[TYPE_STDOUT][len(stdio_trace_by_type[TYPE_STDIN])][1]
@@ -199,10 +198,10 @@ def slices_to_spec(slices, read_prompt_after=True):
                         len(prefix) if len(prefix) else '', -len(postfix))
         has_return = True
       else:
-        print('[INFO] Unknown format of the return value.')
+        clog('info', 'Unknown format of the return value.')
         has_unknown_return = bool(remaining_stdout.strip())  # has visible characters.
     else:
-      print('[INFO] No return value found.')
+      clog('info', 'No return value found.')
 
     # Wait for a prompt after the operation to ensure this operation is done.
     if read_prompt_after and choice_prompt:
@@ -216,18 +215,18 @@ def slices_to_spec(slices, read_prompt_after=True):
     # Commit.
     if score > 0:
       # malloc
-      print('[INFO] The above slice is considered as a malloc operation.')
+      clog('info', 'The above slice is considered as a malloc operation.')
       gen.add_malloc(code)
     elif score < 0:
       # free
-      print('[INFO] The above slice is considered as a free operation.')
+      clog('info', 'The above slice is considered as a free operation.')
       gen.add_free(code)
     else:
-      print('[WARN] Do not know how to deal with the above slice, skipping.')
+      clog('warn', 'Do not know how to deal with the above slice, skipping.')
       # score == 0
       # TODO: determine whether this is a malloc or free.
       pass
-  print('[INFO] Emitting...')
+  clog('info', 'Emitting...')
   return gen.gen()
 
 
@@ -254,10 +253,10 @@ def main():
       hook_offset = None
   else:
     hook_offset = int(args.loop, 16)  # 0x998 # 0x924  # FIXME: magic
-  print('[INFO] Start a fork server.')
+  clog('info', 'Start a fork server.')
   forkd = server.ForkServer(True, args.args, args.allocator)
   if hook_offset != None:
-    print('[INFO] Setting a hook at offset {}.'.format(hex(hook_offset)))
+    clog('info', 'Setting a hook at offset {}.', hex(hook_offset))
     forkd.hook_offset = hook_offset
   forkd.init()
   child_info = forkd.fork()
@@ -268,14 +267,14 @@ def main():
   set_nonblock(sys.stdin.fileno(), True)
   epoll.register(sys.stdin.fileno(), select.EPOLLIN)
   epoll.register(forkd.epoll.fileno(), select.EPOLLIN)
-  print('[INFO] Start interaction.')
+  clog('ok', 'Start interaction.')
   try:
     while True:
       events = epoll.poll()
       if (sys.stdin.fileno(), select.EPOLLIN) in events:
         data = read_leftovers(sys.stdin.fileno(), is_already_nonblock=True)
         if not data:
-          print('[DEBUG] stdin stream closed.')
+          clog('warn', 'stdin stream closed.')
         if not sys.stdin.isatty():
           my_print(data)
         ator.write(data)
@@ -283,17 +282,17 @@ def main():
         my_print(ator.read_leftovers())
   except allocator.ExitingError:
     pass
-  print('[INFO] Exited.')
+  clog('info', 'Exited.')
   ator.fix_output_trace()
   write_results(args.output, ator, None, "tracer's ", '', True)
   slices = trace.trace_slice(ator.full_trace)
   spec_code = slices_to_spec(slices)
   with open('{}/spec.py'.format(args.output), 'w') as f:
     f.write(spec_code)
-  print('[INFO] The spec code is written to {}/spec.py.'.format(args.output))
+  clog('ok', 'The spec code is written to {}/spec.py.', args.output)
   forkd.kill()
   forkd.wait_for_exit()
-  print('[INFO] Done.')
+  clog('ok', 'Done.')
   return 0
 
 

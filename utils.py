@@ -76,3 +76,14 @@ def list_in_str(l, s):
     if item in s:
       return True
   return False
+
+
+def clog(level, s, *args, end=None):
+  if level:
+    level = level.upper()
+    color_map = {'DEBUG': '\033[0;37m', 'INFO': '\033[1;37m', 'WARN': '\033[1;33m',
+                 'ERROR': '\033[1;31m', 'OK': '\033[1;32m'}
+    print('{}[{}]{} {}'.format(color_map.get(level, ''), level, '\033[0m',
+                               s.format(*args) if args else s), end=end)
+  else:
+    print(s.format(*args) if args else s, end=end)
