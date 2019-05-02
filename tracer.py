@@ -25,7 +25,7 @@ parser.add_argument('-o', '--output', default='results/tracer',
                     help='specify the result directory, default: results/tracer')
 parser.add_argument('-l', '--loop', default='auto',
                     help='specify the offset of the main loop '
-                         '(auto / off / ADDRESS, default: auto)')
+                         '(auto / off / no / ADDRESS, default: auto)')
 tool_group = parser.add_mutually_exclusive_group()
 tool_group.add_argument('--ida',
                         help='specify the path of IDA Pro if you want to use IDA Pro '
@@ -236,7 +236,7 @@ def main():
   except FileExistsError:
     pass
   executable = os.path.realpath(args.args[0])
-  if args.loop == 'off':
+  if args.loop == 'off' or args.loop == 'no':
     hook_offset = None
   elif args.loop == 'auto':
     if args.ida:

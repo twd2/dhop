@@ -45,6 +45,7 @@ uint64_t get_address(const std::string &name)
 
 uint64_t get_entry_address(Function &func)
 {
+  if (func.size() == 0) return -1;
   const BasicBlock &entry_bb = func.getEntryBlock();
   return get_address(get_name(entry_bb));
 }
@@ -53,9 +54,22 @@ Function *find_entry_point(Module &mod)
 {
   for (auto &func : mod)
   {
-    if (func.getName() == "entry_point" || func.getName() == "_start")
+    for (auto &bb : func)
     {
-      return &func;
+      for (auto &inst : bb)
+      {
+        if (CallInst *call_inst = dyn_cast<CallInst>(&inst))
+        {
+          if (!call_inst->getCalledFunction()) continue;
+          std::string callee_name = get_name(*call_inst->getCalledFunction());
+          // Find __libc_start_main call.
+          if (callee_name.find("start") != std::string::npos &&
+              callee_name.find("main") != std::string::npos)
+          {
+            return &func;
+          }
+        }
+      }
     }
   }
   return nullptr;
@@ -67,6 +81,10 @@ Function *find_main(Module &mod)
   for (auto &func : mod)
   {
     if (func.getName() == "main" || func.getName() == "_main")
+    {
+      return &func;
+    }
+    if (func.getName().startswith("sub_") && func.getName().endswith("main"))
     {
       return &func;
     }
@@ -108,11 +126,14 @@ Function *find_main(Module &mod)
       break;
     }
   }
-  for (auto &func : mod)
+  if (main_addr != -1)
   {
-    if (get_entry_address(func) == main_addr)
+    for (auto &func : mod)
     {
-      return &func;
+      if (get_entry_address(func) == main_addr)
+      {
+        return &func;
+      }
     }
   }
   return nullptr;
