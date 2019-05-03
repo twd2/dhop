@@ -9,6 +9,42 @@ from utils import *
 _current_dir = os.path.dirname(os.path.realpath(__file__))
 
 
+def _invoke_loop_finder(ir_file):
+  clog('info', 'Finding the main loop in the LLVM IR...')
+  sys.stdout.flush()
+  lf_result = subprocess.run([_current_dir + '/loop-finder/build/loop-finder', ir_file],
+                             stdout=subprocess.PIPE, encoding='UTF-8')
+  if lf_result.returncode != 0:
+    clog('error', 'Loop finder failed.')
+    exit(1)
+  out = lf_result.stdout
+  clog('debug', 'Loop finder\'s output:')
+  print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
+  print(out)
+  print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
+
+  main_func = None
+  main_loop = None
+  for line in out.split('\n'):
+    parts = line.split()
+    if len(parts) < 3:
+      continue
+    if parts[1] == 'main' and 'not found' not in line:
+      main_func = int(parts[-1], 16)
+    if parts[1] == 'entry':
+      main_loop = int(parts[-1], 16)
+
+  if main_func != None:
+    clog('info', 'The main function is at {}.', hex(main_func))
+  else:
+    clog('warn', 'The main function is not found. :(')
+  if main_loop != None:
+    clog('info', 'The entry basic block of the main loop should be at {}.', hex(main_loop))
+  else:
+    clog('warn', 'The main loop is not found. :(')
+  return main_func, main_loop
+
+
 def find_loop_mcsema(mcsema_dir, ida_dir, executable, result_dir):
   clog('info', 'Start recovering the CFG of the input file using McSema...')
   sys.stdout.flush()
@@ -31,19 +67,7 @@ def find_loop_mcsema(mcsema_dir, ida_dir, executable, result_dir):
   if mcsema_result.returncode != 0:
     clog('error', 'mcsema-lift failed.')
     exit(1)
-  clog('info', 'Finding the main loop in the LLVM IR...')
-  sys.stdout.flush()
-  lf_result = subprocess.run([_current_dir + '/loop-finder/build/loop-finder', result_file],
-                             stdout=subprocess.PIPE, encoding='UTF-8')
-  if lf_result.returncode != 0:
-    clog('error', 'Loop finder failed.')
-    exit(1)
-  lf_out = lf_result.stdout
-  clog('debug', 'Loop finder\'s output:')
-  print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
-  print(lf_out)
-  print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
-  raise NotImplementedError()
+  return _invoke_loop_finder(result_file)
 
 
 def find_loop_retdec(retdec_dir, executable, result_dir):
@@ -55,39 +79,7 @@ def find_loop_retdec(retdec_dir, executable, result_dir):
   if retdec_result.returncode != 0:
     clog('error', 'RetDec failed.')
     exit(1)
-  clog('info', 'Finding the main loop in the LLVM IR...')
-  sys.stdout.flush()
-  lf_result = subprocess.run([_current_dir + '/loop-finder/build/loop-finder', result_file],
-                             stdout=subprocess.PIPE, encoding='UTF-8')
-  if lf_result.returncode != 0:
-    clog('error', 'Loop finder failed.')
-    exit(1)
-  lf_out = lf_result.stdout
-  clog('debug', 'Loop finder\'s output:')
-  print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
-  print(lf_out)
-  print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
-
-  main_func = None
-  main_loop = None
-  for line in lf_out.split('\n'):
-    parts = line.split()
-    if len(parts) < 3:
-      continue
-    if parts[1] == 'main' and 'not found' not in line:
-      main_func = int(parts[-1], 16)
-    if parts[1] == 'entry':
-      main_loop = int(parts[-1], 16)
-
-  if main_func != None:
-    clog('info', 'The main function is at {}.', hex(main_func))
-  else:
-    clog('warn', 'The main function is not found. :(')
-  if main_loop != None:
-    clog('info', 'The entry basic block of the main loop should be at {}.', hex(main_loop))
-  else:
-    clog('warn', 'The main loop is not found. :(')
-  return main_func, main_loop
+  return _invoke_loop_finder(result_file)
 
 
 if __name__ == '__main__':
