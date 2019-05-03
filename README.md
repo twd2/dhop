@@ -10,7 +10,24 @@
 * [Python 3](https://www.python.org/downloads/)
 * GCC (`sudo apt install gcc g++ make`)
 * [Capstone Engine](https://github.com/aquynh/capstone) (`sudo apt install libcapstone-dev`)
-* [RetDec](https://github.com/avast/retdec) or [IDA Pro](https://www.hex-rays.com/cgi-bin/quote.cgi)
+* cmake (`sudo apt install cmake`)
+* LLVM (`sudo apt install llvm-dev`)
+* zlib (`sudo apt install zlib1g-dev`)
+
+It finds the main loop by analyzing the LLVM IR code, which is lifted from the binary.
+Users can use either RetDec or McSema as the lifter, and the prerequisites are as follows, respectively.
+
+### Prerequisites for Using RetDec
+
+* [RetDec](https://github.com/avast/retdec)
+
+### Prerequisites for Using McSema
+
+* [McSema](https://github.com/trailofbits/mcsema)
+
+..., and a disassembler required by McSema, like:
+
+* [IDA Pro](https://www.hex-rays.com/cgi-bin/quote.cgi)
 
 ## Usage
 

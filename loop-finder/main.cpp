@@ -97,8 +97,8 @@ Function *find_main(Module &mod)
     std::cout << "The entry point is not found." << std::endl;
     return nullptr;
   }
-  std::cout << std::hex << "The entry point is at 0x"
-            << get_entry_address(*entry_func) << std::endl;
+  std::cout << "The entry point is at 0x"
+            << std::hex << get_entry_address(*entry_func) << std::endl;
   uint64_t main_addr = -1;
   bool found = false;
   for (auto &bb : *entry_func)
@@ -147,7 +147,7 @@ void find_main_loop(Module &mod)
     std::cout << "The main function is not found." << std::endl;
     return;
   }
-  std::cout << std::hex << "The main function is at 0x" << get_entry_address(*main_func) << std::endl;
+  std::cout << "The main function is at 0x" << std::hex << get_entry_address(*main_func) << std::endl;
   DominatorTree dt(*main_func);
   LoopInfoBase<BasicBlock, Loop> li;
   li.releaseMemory();
@@ -173,7 +173,7 @@ void find_main_loop(Module &mod)
       continue;
     }
     std::cout << "[DEBUG] Find a loop starting with " << get_name(*loop->getHeader()) << " having "
-              << loop->getNumBlocks() << " blocks" << std::endl;
+              << std::dec << loop->getNumBlocks() << " blocks" << std::endl;
     if (loop->getNumBlocks() > max_blocks)
     {
       biggest_loop = loop;
