@@ -15,7 +15,7 @@ class ForkServer():
     self.args = args
     self.malloc_so = malloc_so
     self.executable = os.path.realpath(args[0])
-    self.hook_offset = None
+    self.hook_addr = None
     inspect_fd_r, inspect_fd_w = os.pipe2(0)
     server_fd_r, server_fd_w = os.pipe2(0)
     stdin_fd_r, stdin_fd_w = os.pipe2(0)
@@ -74,7 +74,12 @@ class ForkServer():
     clog('', 'ready!')
 
   def _find_section_text(self):
-    self.section_text_begin = 0
+    # Find Section text in the image (ELF file).
+    self.exe_section_text_begin = find_section_text(self.executable)
+    clog('info', 'Section .text is beginning at {} in the image (ELF file).',
+         hex(self.exe_section_text_begin))
+    # Find Section text in the child process.
+    self.proc_section_text_begin = 0
     with open('/proc/{}/maps'.format(self.server_pid), 'r') as f:
       for line in f:
         # 555555554000-55555555c000 r-xp 00000000 08:02 5242960                    /bin/cat
@@ -84,12 +89,13 @@ class ForkServer():
         vmbegin = int(vmbegin, 16)
         vmend = int(vmend, 16)
         if 'x' in prot and os.path.realpath(filename) == self.executable:
-          self.section_text_begin = vmbegin
-    clog('info', 'Section .text is beginning at {}.', hex(self.section_text_begin))
+          self.proc_section_text_begin = vmbegin
+          break
+    clog('info', 'Section .text is beginning at {}.', hex(self.proc_section_text_begin))
 
   def _set_hook(self):
-    if self.hook_offset != None:
-      hook_addr = self.section_text_begin + self.hook_offset
+    if self.hook_addr != None:
+      hook_addr = self.hook_addr - self.exe_section_text_begin + self.proc_section_text_begin
     else:
       hook_addr = 0
     os.write(self.server_fd, struct.pack('<Q', hook_addr))

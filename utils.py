@@ -1,6 +1,7 @@
 import fcntl
 import os
 import struct
+import subprocess
 
 
 INSPECT_FD = 3
@@ -18,6 +19,28 @@ SIZEOF_PACKET = len(struct.pack(STRUCT_PACKET, 0, 0, 0, 0))
 TYPE_MAIN_LOOP = 1000
 TYPE_STDIN    = 10000
 TYPE_STDOUT   = 10001
+
+
+def find_section_text(executable):
+  result = subprocess.run(['objdump', '-p', executable], env={**os.environ, 'LANG': 'en_US'},
+                          stdout=subprocess.PIPE, encoding='UTF-8')
+  if result.returncode != 0:
+    clog('error', 'objdump failed.')
+    exit(1)
+  lines = result.stdout.split('\n')
+  it = iter(lines)
+  while not next(it).startswith('Program Header:'): pass
+  while True:
+    line1 = next(it).strip()
+    if not line1:
+      break
+    line2 = next(it).strip()
+    vmbegin = int(line1.split()[4], 16)
+    prot = line2.split()[5]
+    if 'x' in prot:
+      return vmbegin
+  return None
+
 
 def read_packet(fd):
   buff = os.read(fd, SIZEOF_PACKET)

@@ -24,8 +24,9 @@ parser.add_argument('-a', '--allocator', help='specify the allocator library (.s
 parser.add_argument('-o', '--output', default='results/tracer',
                     help='specify the result directory, default: results/tracer')
 parser.add_argument('-l', '--loop', default='auto',
-                    help='specify the offset of the main loop '
-                         '(auto / off / no / ADDRESS, default: auto)')
+                    help='specify the address of the main loop '
+                         '(auto / off / no / ADDRESS, default: auto). '
+                         'Note: the address is the address in the image (ELF file).')
 tool_group = parser.add_mutually_exclusive_group()
 tool_group.add_argument('--ida',
                         help='specify the path of IDA Pro if you want to use IDA Pro '
@@ -237,27 +238,21 @@ def main():
     pass
   executable = os.path.realpath(args.args[0])
   if args.loop == 'off' or args.loop == 'no':
-    hook_offset = None
+    hook_addr = None
   elif args.loop == 'auto':
     if args.ida:
-      entry_point, main_func, main_loop = \
-          loop_finder.find_loop_ida(args.ida, executable, args.output)
+      main_func, main_loop = loop_finder.find_loop_ida(args.ida, executable, args.output)
     else:
       assert(bool(args.retdec))
-      entry_point, main_func, main_loop = \
-          loop_finder.find_loop_retdec(args.retdec, executable, args.output)
-    if main_loop != None:
-      vm_base = entry_point & ~0xfff  # FIXME: magic
-      hook_offset = main_loop - vm_base
-    else:
-      hook_offset = None
+      main_func, main_loop = loop_finder.find_loop_retdec(args.retdec, executable, args.output)
+    hook_addr = main_loop
   else:
-    hook_offset = int(args.loop, 16)  # 0x998 # 0x924  # FIXME: magic
+    hook_addr = int(args.loop, 16)  # 0x998 # 0x924  # FIXME: magic
   clog('info', 'Start a fork server.')
   forkd = server.ForkServer(True, args.args, args.allocator)
-  if hook_offset != None:
-    clog('info', 'Setting a hook at offset {}.', hex(hook_offset))
-    forkd.hook_offset = hook_offset
+  if hook_addr != None:
+    clog('info', 'Setting a hook at {}.', hex(hook_addr))
+    forkd.hook_addr = hook_addr
   forkd.init()
   child_info = forkd.fork()
   ator = allocator.AbstractAllocator()
