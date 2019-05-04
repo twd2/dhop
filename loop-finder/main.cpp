@@ -84,7 +84,7 @@ Function *find_main(Module &mod)
     {
       return &func;
     }
-    if (func.getName().startswith("sub_") && func.getName().endswith("main"))
+    if (func.getName().startswith("sub_") && func.getName().endswith("_main"))
     {
       return &func;
     }

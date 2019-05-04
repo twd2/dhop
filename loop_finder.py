@@ -31,7 +31,7 @@ def _invoke_loop_finder(ir_file):
       continue
     if parts[1] == 'main' and 'not found' not in line:
       main_func = int(parts[-1], 16)
-    if parts[1] == 'entry':
+    if parts[2] == 'basic':
       main_loop = int(parts[-1], 16)
 
   if main_func != None:
