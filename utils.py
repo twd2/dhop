@@ -35,6 +35,8 @@ def find_section_text(executable):
     if not line1:
       break
     line2 = next(it).strip()
+    # LOAD off    0x0000000000000000 vaddr 0x0000000000000000 paddr 0x0000000000000000 align 2**21
+    #      filesz 0x0000000000000e48 memsz 0x0000000000000e48 flags r-x
     vmbegin = int(line1.split()[4], 16)
     prot = line2.split()[5]
     if 'x' in prot:
