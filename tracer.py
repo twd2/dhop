@@ -28,12 +28,14 @@ parser.add_argument('-l', '--loop', default='auto',
                          '(auto / off / no / ADDRESS, default: auto). '
                          'Note: the address is the address in the image (ELF file).')
 tool_group = parser.add_mutually_exclusive_group()
-tool_group.add_argument('--ida',
-                        help='specify the path of IDA Pro if you want to use IDA Pro '
-                             'to find the main loop (default: empty)')
-tool_group.add_argument('--retdec', default='/opt/retdec',
+tool_group.add_argument('--mcsema', default='/opt/mcsema',
+                        help='specify the path of McSema if you want to use McSema '
+                             'as the lifer (default: /opt/mcsema)')
+tool_group.add_argument('--retdec',
                         help='specify the path of RetDec if you want to use RetDec '
-                             'to find the main loop (default: /opt/retdec)')
+                             'as the lifer (default: empty)')
+parser.add_argument('--ida', help='specify the path of IDA Pro used by McSema. '
+                                  'Mandatory if use McSema, otherwise optional.')
 parser.add_argument('args', nargs='+', help='executable and its arguments')
 
 
@@ -88,14 +90,22 @@ def slices_to_spec(slices, read_prompt_after=True):
   gen = specgen.SpecGen('This is a spec for {}.'.format(executable))
 
   # Init slice.
+  gen.init_code = ''
+
+  init_stdin = b''
+  for type, arg1, arg2, ret in slices[0]:
+    if type == TYPE_STDIN:
+      init_stdin += arg1
+  if init_stdin:
+    gen.init_code += '    self.write({})  # The prologue.\n'.format(repr(init_stdin))
+  clog('info', 'The prologue is {}.', repr(init_stdin.decode()))
+
   init_stdout = b''
   for type, arg1, arg2, ret in slices[0]:
     if type == TYPE_STDOUT:
       init_stdout += arg1
   if init_stdout:
-    gen.init_code = '    self.read_until({})\n'.format(repr(get_postfix(init_stdout)))
-  else:
-    gen.init_code = ''
+    gen.init_code += '    self.read_until({})\n'.format(repr(get_postfix(init_stdout)))
 
   # Loop slices.
   choice_prompts = collections.defaultdict(int)
@@ -223,10 +233,27 @@ def slices_to_spec(slices, read_prompt_after=True):
       clog('info', 'The above slice is considered as a free operation.')
       gen.add_free(code)
     else:
-      clog('warn', 'Do not know how to deal with the above slice, skipping.')
       # score == 0
+      clog('warn', 'Do not know how to deal with the above slice, marking as unknown.')
       # TODO: determine whether this is a malloc or free.
-      pass
+      if read_prompt_after or not choice_prompt:
+        code = ''
+      else:
+        # Wait for a prompt before the operation.
+        code = '    self.read_until({})\n'.format(repr(get_postfix(choice_prompt)))
+      code += '    self.write({})\n'.format(repr(choice_str))
+      for i in range(1, len(stdio_trace_by_type[TYPE_STDIN])):
+        raw_prompt = stdio_trace_by_type[TYPE_STDOUT][i][1]
+        raw_input = stdio_trace_by_type[TYPE_STDIN][i][1]
+        code += '    self.read_until({})\n'.format(repr(raw_prompt))
+        code += '    self.write({})\n'.format(repr(raw_input))
+      if len(stdio_trace_by_type[TYPE_STDOUT]) > len(stdio_trace_by_type[TYPE_STDIN]):
+        remaining_stdout = stdio_trace_by_type[TYPE_STDOUT][len(stdio_trace_by_type[TYPE_STDIN])][1]
+        code += '    self.read_until({})\n'.format(repr(remaining_stdout))
+      # Wait for a prompt after the operation to ensure this operation is done.
+      if read_prompt_after and choice_prompt:
+        code += '    self.read_until({})\n'.format(repr(get_postfix(choice_prompt)))
+      gen.add_unknown(code)
   clog('info', 'Emitting...')
   return gen.gen()
 
@@ -240,14 +267,19 @@ def main():
   if args.loop == 'off' or args.loop == 'no':
     hook_addr = None
   elif args.loop == 'auto':
-    if args.ida:
-      main_func, main_loop = loop_finder.find_loop_ida(args.ida, executable, args.output)
-    else:
-      assert(bool(args.retdec))
+    if args.retdec:
       main_func, main_loop = loop_finder.find_loop_retdec(args.retdec, executable, args.output)
+    elif args.mcsema:
+      if not args.ida:
+        clog('error', 'The path of IDA Pro is not specified.')
+        exit(1)
+      main_func, main_loop = \
+        loop_finder.find_loop_mcsema(args.mcsema, args.ida, executable, args.output)
+    else:
+      assert(False)
     hook_addr = main_loop
   else:
-    hook_addr = int(args.loop, 16)  # 0x998 # 0x924  # FIXME: magic
+    hook_addr = int(args.loop, 16)
   clog('info', 'Start a fork server.')
   forkd = server.ForkServer(True, args.args, args.allocator)
   if hook_addr != None:

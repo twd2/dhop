@@ -8,12 +8,16 @@ class SpecGen():
     self.fini_code = ''
     self.malloc_ops = []
     self.free_ops = []
+    self.unknowns = []
 
   def add_malloc(self, code):
     self.malloc_ops.append(code)
 
   def add_free(self, code):
     self.free_ops.append(code)
+
+  def add_unknown(self, code):
+    self.unknowns.append(code)
 
   def gen(self):
     if not self.init_code:
@@ -52,6 +56,10 @@ class SpecGen():
       parts.append('\n')
     for i, code in enumerate(self.free_ops):
       parts.append('  def free{}(self, ref):\n'.format(i))
+      parts.append(code)
+      parts.append('\n')
+    for i, code in enumerate(self.unknowns):
+      parts.append('  def unknown{}(self):\n'.format(i))
       parts.append(code)
       parts.append('\n')
     parts.append('  malloc_ops = (')
