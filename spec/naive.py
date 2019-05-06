@@ -7,6 +7,7 @@ class Allocator(allocator.AbstractAllocator):
     super().__init__()
 
   def _init(self):
+    self.write(b'6\n')  # The prologue.
     self.read_until(b'op? ')
 
   def _fini(self):

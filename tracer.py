@@ -34,8 +34,11 @@ tool_group.add_argument('--mcsema', default='/opt/mcsema',
 tool_group.add_argument('--retdec',
                         help='specify the path of RetDec if you want to use RetDec '
                              'as the lifer (default: empty)')
-parser.add_argument('--ida', help='specify the path of IDA Pro used by McSema. '
-                                  'Mandatory if use McSema, otherwise optional.')
+_default_ida = os.environ['HOME'] + '/ida-6.8'
+parser.add_argument('--ida', default=_default_ida,
+                    help='specify the path of IDA Pro used by McSema. '
+                         'Mandatory if use McSema, otherwise optional. '
+                         '(default: ' + _default_ida + ')')
 parser.add_argument('args', nargs='+', help='executable and its arguments')
 
 
