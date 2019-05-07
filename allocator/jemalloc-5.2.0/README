@@ -1,0 +1,7 @@
+The commands used to build `*.prebuilt` files:
+
+```bash
+./configure --prefix=/opt/jemalloc
+make
+sudo make install
+```
