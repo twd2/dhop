@@ -190,7 +190,7 @@ static void init(void)
 static void ctor(void) __attribute__((constructor));
 static void ctor(void)
 {
-  init();
+  if (!initialized) init();
 }
 
 static void *boot_malloc(size_t size)
