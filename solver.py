@@ -2,10 +2,10 @@
 
 import argparse
 import copy
+import importlib.util
 import math
 import os
 import os.path
-import pkgutil
 import random
 import sys
 import time
@@ -31,16 +31,15 @@ parser.add_argument('spec', help='specify the description (spec) file')
 parser.add_argument('args', nargs='+', help='executable and its arguments')
 
 
-def get_class(type, module_name, class_name):
-  model_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), type)
-  for module_finder, name, ispkg in pkgutil.iter_modules([model_path]):
-    if name != module_name:
-      continue
-    if not ispkg:
-      module = module_finder.find_module(name).load_module()
-      if class_name in dir(module):
-        return getattr(module, class_name)
-  return None
+def load_class(module_name, filename, class_name):
+  spec = importlib.util.spec_from_file_location(module_name, filename)
+  if not spec:
+    return None
+  module = importlib.util.module_from_spec(spec)
+  spec.loader.exec_module(module)
+  if class_name not in dir(module):
+    return None
+  return getattr(module, class_name)
 
 
 def execute_ops(forkd, ator_spec, ops):
@@ -99,13 +98,13 @@ def write_results(result_dir, ator, ops, adj='', prefix='', write_full_trace=Fal
 
 
 def main():
-  ator_spec = get_class('spec', args.spec, 'Allocator')
+  ator_spec = load_class('spec', args.spec, 'Allocator')
   if not ator_spec:
     clog('error', 'No such spec named "{}".', args.spec)
     exit(1)
   else:
     clog('info', 'Using spec named "{}".', args.spec)
-  Solver = get_class('solver', args.solver, 'Solver')
+  Solver = load_class('solver', 'solver/{}.py'.format(args.solver), 'Solver')
   if not Solver:
     clog('error', 'No such solver named "{}".', args.solver)
     exit(1)

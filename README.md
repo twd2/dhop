@@ -33,8 +33,7 @@ Users can use either RetDec or McSema as the lifter, and the prerequisites are a
 
 ```bash
 make
-./tracer.py test/naive
-./tracer.py -a allocator/simplemalloc/simplemalloc.so test/naive
-./solver.py -s random naive test/naive
-./solver.py -a allocator/simplemalloc/simplemalloc.so -s random naive test/naive
+./tracer.py -o results/naive/tracer test/naive
+./solver.py -o results/naive -s random results/naive/tracer/spec.py test/naive
+./solver.py -o results/naive/simple -a allocator/simplemalloc/simplemalloc.so -s random results/naive/tracer/spec.py test/naive
 ```
