@@ -1,7 +1,10 @@
 import allocator
 
 
-# This is the spec of the `naive.c`.
+# This is the example spec of `naive.c`.
+# You can write your own spec manually, or use
+# `tracer.py` to analyze the target file and
+# generate the spec automagically.
 class Allocator(allocator.AbstractAllocator):
   def __init__(self):
     super().__init__()
