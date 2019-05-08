@@ -1,0 +1,1 @@
+This is uClibc's malloc (not malloc-standard nor malloc-simple) with some minor modifications shown in `diff.patch`.

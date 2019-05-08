@@ -1,0 +1,47 @@
+diff -r before/Makefile after/Makefile
+1,6c1
+< # Makefile for uClibc
+< #
+< # Copyright (C) 2000-2005 Erik Andersen <andersen@uclibc.org>
+< #
+< # Licensed under the LGPL v2.1, see the file COPYING.LIB in this tarball.
+< #
+---
+> OBJS=calloc.o free.o heap_alloc.o heap_alloc_at.o heap_free.o malloc.o memalign.o realloc.o
+8,13c3,14
+< top_srcdir=../../../
+< top_builddir=../../../
+< all: objs
+< include $(top_builddir)Rules.mak
+< include Makefile.in
+< include $(top_srcdir)Makerules
+---
+> .PHONY: all
+> all: ucmalloc.so
+> 
+> ucmalloc.so: $(OBJS)
+> 	gcc -O2 -shared -fPIC -o $@ $^
+> 
+> %.o: %.c heap.h malloc.h twd2_patch.h
+> 	gcc -O2 -Wall -fPIC -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free -I. -D__ARCH_USE_MMU__ -c $< -o $@
+> 
+> .PHONY: clean
+> clean:
+> 	-rm *.o *.so
+Only in before: Makefile.in
+Only in after: bits
+diff -r before/calloc.c after/calloc.c
+0a1,2
+> #include "twd2_patch.h"
+> 
+diff -r before/heap.h after/heap.h
+0a1,2
+> #include "twd2_patch.h"
+> 
+Only in before: heap_debug.c
+diff -r before/malloc.h after/malloc.h
+0a1,2
+> #include "twd2_patch.h"
+> 
+Only in before: malloc_debug.c
+Only in after: twd2_patch.h
