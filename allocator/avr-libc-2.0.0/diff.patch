@@ -1,0 +1,27 @@
+Only in after: Makefile
+Only in after: avr
+diff -r before/malloc.c after/malloc.c
+60,61c60,63
+< char *__malloc_heap_start = &__heap_start;
+< char *__malloc_heap_end = &__heap_end;
+---
+> #define HEAP_SIZE (1 << 28)  // 256MiB
+> char _heap[HEAP_SIZE] = {0};
+> char *__malloc_heap_start = _heap;
+> char *__malloc_heap_end = _heap + HEAP_SIZE;
+164,165d165
+< 	if (cp == 0)
+< 		cp = STACK_POINTER() - __malloc_margin;
+diff -r before/realloc.c after/realloc.c
+131,132d130
+< 		if (cp1 == 0)
+< 			cp1 = STACK_POINTER() - __malloc_margin;
+Only in after: sectionname.h
+diff -r before/stdlib_private.h after/stdlib_private.h
+83,85d82
+<          
+< extern char __heap_start;
+< extern char __heap_end;
+89,90d85
+< 
+< #define STACK_POINTER() ((char *)AVR_STACK_POINTER_REG)

@@ -1,0 +1,1 @@
+This is avr-libc's malloc with some minor modifications shown in `diff.patch`.
