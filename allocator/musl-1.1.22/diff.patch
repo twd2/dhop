@@ -1,0 +1,54 @@
+Only in after: Makefile
+Only in after: README
+Only in after: atomic.h
+Only in after: atomic_arch.h
+diff -r before/expand_heap.c after/expand_heap.c
+0a1
+> #include <unistd.h>
+17,27d17
+< 	const uintptr_t len = 8<<20;
+< 	uintptr_t a, b;
+< 
+< 	b = (uintptr_t)libc.auxv;
+< 	a = b > len ? b-len : 0;
+< 	if (new>a && old<b) return 1;
+< 
+< 	b = (uintptr_t)&b;
+< 	a = b > len ? b-len : 0;
+< 	if (new>a && old<b) return 1;
+< 
+28a19,31
+> }
+> 
+> static inline uintptr_t __syscall(int _, uintptr_t ptr)
+> {
+>   if (ptr == 0) {
+>     return (uintptr_t)sbrk(0);
+>   } else {
+>     if (brk((void *)ptr) == 0) {
+>       return ptr;
+>     } else {
+>       return 0;
+>     }
+>   }
+Only in after: libc.h
+Only in before: lite_malloc.c
+diff -r before/malloc.c after/malloc.c
+29,30c29
+< 	if (libc.threads_minus_1)
+< 		while(a_swap(lk, 1)) __wait(lk, lk+1, 1, 1);
+---
+> 
+35,38c34
+< 	if (lk[0]) {
+< 		a_store(lk, 0);
+< 		if (lk[1]) __wake(lk, 1, 1);
+< 	}
+---
+> 
+Only in after: malloc_impl.h
+diff -r before/memalign.c after/memalign.c
+53a54,55
+> #define weak_alias(old, new) \
+>         extern __typeof(old) new __attribute__((__weak__, __alias__(#old)))
+Only in after: pthread_impl.h

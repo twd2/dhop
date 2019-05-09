@@ -1,6 +1,6 @@
 LOOP_FINDER=loop-finder/build/loop-finder
 TEST_CASES=test/naive test/usermgmt test/switchtest test/switchtest-nopie test/babyheap
-ALLOCATORS=allocator/simplemalloc/simplemalloc.so allocator/dlmalloc-2.8.6/malloc.so allocator/tcmalloc-2.7/libtcmalloc.so allocator/jemalloc-5.2.0/libjemalloc.so allocator/uClibc-ng-1.0.31/ucmalloc.so allocator/avr-libc-2.0.0/malloc.so
+ALLOCATORS=allocator/simplemalloc/simplemalloc.so allocator/dlmalloc-2.8.6/malloc.so allocator/tcmalloc-2.7/libtcmalloc.so allocator/jemalloc-5.2.0/libjemalloc.so allocator/uClibc-ng-1.0.31/ucmalloc.so allocator/avr-libc-2.0.0/malloc.so allocator/musl-1.1.22/malloc.so
 
 .PHONY: all
 all: wrapper.so wrapper_hook.so $(LOOP_FINDER) $(TEST_CASES) $(ALLOCATORS)
@@ -58,6 +58,10 @@ allocator/uClibc-ng-1.0.31/ucmalloc.so:
 allocator/avr-libc-2.0.0/malloc.so:
 	cd allocator/avr-libc-2.0.0 && make
 
+.PHONY: allocator/musl-1.1.22/malloc.so
+allocator/musl-1.1.22/malloc.so:
+	cd allocator/musl-1.1.22 && make
+
 .PHONY: test
 test: all
 	LD_PRELOAD=./wrapper.so ./naive
@@ -74,4 +78,5 @@ clean:
 	-cd test && ls | grep -vE '\.(c|prebuilt)$$' | xargs rm
 	-cd allocator/uClibc-ng-1.0.31 && make clean
 	-cd allocator/avr-libc-2.0.0 && make clean
+	-cd allocator/musl-1.1.22 && make clean
 
