@@ -17,7 +17,9 @@
 #define libc_hidden_proto(x)
 #endif
 #ifndef weak_alias
-#define weak_alias(x, y)
+#  define weak_alias(name, aliasname) _weak_alias (name, aliasname)
+#  define _weak_alias(name, aliasname) \
+  extern __typeof (name) aliasname __attribute__ ((weak, alias (#name)));
 #endif
 #ifndef libc_hidden_def
 #define libc_hidden_def(x)
