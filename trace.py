@@ -47,6 +47,43 @@ def trace_to_layout(trace):
   return layout
 
 
+def trace_to_code(fo, trace):
+  fo.write('void make_trace()\n{\n')
+  count = [0]
+  ref_to_var = {}
+  def get_var(ref):
+    if ref not in ref_to_var:
+      ref_to_var[ref] = 'ptr{}'.format(count[0])
+      count[0] += 1
+    return ref_to_var[ref]
+  def del_var(ref):
+    del ref_to_var[ref]
+  for type, arg1, arg2, ret in trace:
+    if type == TYPE_MALLOC:
+      fo.write('  void *{} = malloc({});\n'.format(get_var(ret), arg1))
+    elif type == TYPE_CALLOC:
+      fo.write('  void *{} = calloc({}, {});\n'.format(get_var(ret), arg1, arg2))
+    elif type == TYPE_REALLOC:
+      if arg1 == 0:
+        fo.write('  void *{} = realloc(NULL, {});\n'.format(get_var(ret), arg2))
+      else:
+        old_var = get_var(arg1)
+        del_var(arg1)
+        new_var = get_var(ret)
+        fo.write('  void *{} = realloc({}, {});\n'.format(new_var, old_var, arg2))
+    elif type == TYPE_FREE:
+      if arg1 == 0:
+        fo.write('  free(NULL);\n')
+      else:
+        fo.write('  free({});\n'.format(get_var(arg1)))
+        del_var(arg1)
+    elif type in [TYPE_STDIN, TYPE_STDOUT, TYPE_MAIN_LOOP, TYPE_EXIT]:
+      pass
+    else:
+      assert(False)
+  fo.write('}\n')
+
+
 def dump_layout(fo, layout, a_addr=None, b_addr=None):
   if not layout:
     return

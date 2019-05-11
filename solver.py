@@ -88,6 +88,10 @@ def write_results(result_dir, ator, ops, adj='', prefix='', write_full_trace=Fal
   with open('{}/{}trace.txt'.format(result_dir, prefix), 'w') as f:
     trace.dump_trace(f, ator.allocator_trace)
   clog('ok', 'The {}trace is written to {}/{}trace.txt.', adj, result_dir, prefix)
+  with open('{}/{}code.c'.format(result_dir, prefix), 'w') as f:
+    trace.trace_to_code(f, ator.allocator_trace)
+  clog('ok', 'The {}code to reproduce this trace is written to {}/{}code.c.',
+       adj, result_dir, prefix)
   if write_full_trace:
     with open('{}/{}full_trace.txt'.format(result_dir, prefix), 'w') as f:
       trace.dump_trace(f, ator.full_trace)
