@@ -1,5 +1,6 @@
 LOOP_FINDER=loop-finder/build/loop-finder
-TEST_CASES=test/naive test/usermgmt test/switchtest test/switchtest-nopie test/babyheap
+TEST_CASES=test/naive test/usermgmt test/switchtest test/switchtest-nopie test/babyheap \
+test/bm_0noise_null test/bm_1noise_null test/bm_4noise_null test/bm_0noise_php-7.2.17 test/bm_1noise_php-7.2.17 test/bm_4noise_php-7.2.17 test/bm_0noise_python-3.6.7 test/bm_1noise_python-3.6.7 test/bm_4noise_python-3.6.7
 ALLOCATORS=allocator/simplemalloc/simplemalloc.so allocator/dlmalloc-2.8.6/malloc.so allocator/tcmalloc-2.7/libtcmalloc.so allocator/jemalloc-5.2.0/libjemalloc.so allocator/uClibc-ng-1.0.31/ucmalloc.so allocator/avr-libc-2.0.0/malloc.so allocator/musl-1.1.22/malloc.so
 
 .PHONY: all
@@ -10,7 +11,7 @@ loop-finder/build/loop-finder:
 	cd loop-finder && mkdir -p build && cd build && cmake -DCMAKE_BUILD_TYPE=Debug .. && make
 
 test/%: test/%.c
-	gcc -O2 -Wall $^ -o $@
+	gcc -O2 -Wall -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free $^ -o $@
 	cp $@ $@-stripped && strip $@-stripped
 
 test/switchtest: test/switchtest.c test/foo.o
