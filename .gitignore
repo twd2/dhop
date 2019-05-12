@@ -3,6 +3,7 @@ usermgmt
 switchtest
 switchtest-nopie
 babyheap
+bm_*
 *-stripped
 *.so
 *.o
