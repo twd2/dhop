@@ -2,6 +2,7 @@
 
 import argparse
 import copy
+import gc
 import importlib.util
 import math
 import os
@@ -163,6 +164,7 @@ def main():
       total += 1
       current_time = time.time()
       if current_time - last_time >= 1.0:
+        gc.collect()
         last_time = current_time
         clog('', '\r', end='')
         clog('info', '{} executions / sec, {} crashes, {} executions totally, loss = {}    ',
