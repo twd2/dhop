@@ -33,7 +33,7 @@ def trace_to_layout(trace):
     elif type == TYPE_CALLOC:
       regions[ret] = arg1 * arg2
     elif type == TYPE_REALLOC:
-      if arg1:
+      if arg1 in regions:
         del regions[arg1]
       regions[ret] = arg2
     elif type == TYPE_FREE:
