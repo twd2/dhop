@@ -27,6 +27,8 @@ parser.add_argument('-o', '--output', default='results/unnamed',
 parser.add_argument('-s', '--solver', default='random', choices=['random', 'directed', 'diversity'],
                     help='specify the solver, default is the random solver')
 parser.add_argument('-t', '--timeout', type=int, default=600, help='timeout (seconds), default: 600')
+parser.add_argument('-m', '--maxexe', type=int, default=0,
+                    help='max executions, default: 0 (unlimited)')
 parser.add_argument('-z', '--solver-args', nargs='*', default=[], help='executable and its arguments')
 parser.add_argument('spec', help='specify the description (spec) file')
 parser.add_argument('args', nargs='+', help='executable and its arguments')
@@ -103,6 +105,7 @@ def write_results(result_dir, ator, ops, adj='', prefix='', write_full_trace=Fal
 
 
 def main():
+  clog('info', 'The target executable is "{}".', args.args[0])
   ator_spec = load_class('spec', args.spec, 'Allocator')
   if not ator_spec:
     clog('error', 'No such spec named "{}".', args.spec)
@@ -115,11 +118,13 @@ def main():
     exit(1)
   else:
     clog('info', 'Using solver named "{}".', args.solver)
+  clog('info', 'Using allocator "{}".', args.allocator if args.allocator else '(system default)')
   do_optimize = not args.no_optimize
   try:
     os.makedirs(args.output)
   except FileExistsError:
     pass
+  clog('info', 'Results will be written to "{}".', args.output)
   solver = Solver(*args.solver_args)
   clog('info', 'Start')
   forkd = server.ForkServer(False, args.args, args.allocator)
@@ -131,6 +136,8 @@ def main():
   min_loss = 0xffffffffffffffff
   done = False
   solved = False
+  solution_size = 0
+  opt_solution_size = 0
   begin_time = time.time()
   last_time = begin_time
   while not done:
@@ -141,27 +148,31 @@ def main():
         ator = execute_ops(forkd, ator_spec, ops)
       except allocator.ExitingError:
         crashes += 1
+      eps += 1
+      total += 1
       if ator:
         loss = ator.loss()
+        if loss < min_loss:
+          min_loss = loss
         if loss == 0:
           end_time = time.time()
           clog('', '')
           clog('info', 'loss = 0')
           clog('ok', 'Congratulations! The desired heap layout is achieved.')
+          solution_size = len(ops)
+          clog('info', 'The size of the solution is {}.', solution_size)
           write_results(args.output, ator, ops)
           if do_optimize:
             clog('info', 'Optimizing results... ', end='')
             ator, ops = optimize_ops(forkd, ator_spec, ops)
             clog('', 'done!')
+            opt_solution_size = len(ops)
+            clog('info', 'The size of the optimized solution is {}.', opt_solution_size)
             write_results(args.output, ator, ops, 'optimized ', 'opt_')
           solved = True
           done = True
           break
         solver.update_result(ops, ator)
-        if loss < min_loss:
-          min_loss = loss
-      eps += 1
-      total += 1
       current_time = time.time()
       if current_time - last_time >= 1.0:
         gc.collect()
@@ -170,10 +181,17 @@ def main():
         clog('info', '{} executions / sec, {} crashes, {} executions totally, loss = {}    ',
              eps, crashes, total, min_loss, end='')
         eps = 0
-        if current_time - begin_time >= args.timeout:
+        if args.timeout and current_time - begin_time >= args.timeout:
           end_time = time.time()
           clog('', '')
           clog('warn', 'Timed out.')
+          solved = False
+          done = True
+          break
+        if args.maxexe and total >= args.maxexe:
+          end_time = time.time()
+          clog('', '')
+          clog('warn', 'Executions limit reached.')
           solved = False
           done = True
           break
@@ -183,7 +201,7 @@ def main():
   clog('info', '{} crashes, {} executions totally, {:.6f} seconds, {:.2f} executions / sec',
        crashes, total, time_usage, total / time_usage)
   with open('{}/stat.csv'.format(args.output), 'w') as f:
-    f.write('{},{},{},{},{},{},{},{},{},{},{},{}\n'.format(
+    f.write('{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n'.format(
               args.output,
               args.allocator if args.allocator else '(system default)',
               args.solver,
@@ -192,10 +210,14 @@ def main():
               args.spec,
               ' '.join(args.args),
               int(solved),
-              crashes,
+              min_loss,
               total,
+              crashes,
               time_usage,
-              total / time_usage
+              total / time_usage,
+              solution_size,
+              opt_solution_size,
+              opt_solution_size / solution_size if solution_size else 0,
             ))
   clog('ok', 'The summary is written to {}/stat.csv.', args.output)
   clog('info', 'Exiting...')
