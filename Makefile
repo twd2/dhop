@@ -6,6 +6,9 @@ ALLOCATORS=allocator/simplemalloc/simplemalloc.so allocator/dlmalloc-2.8.6/mallo
 .PHONY: all
 all: wrapper.so wrapper_hook.so $(LOOP_FINDER) $(TEST_CASES) $(ALLOCATORS)
 
+.PHONY: solver
+solver: wrapper.so $(TEST_CASES) $(ALLOCATORS)
+
 .PHONY: loop-finder/build/loop-finder
 loop-finder/build/loop-finder:
 	cd loop-finder && mkdir -p build && cd build && cmake -DCMAKE_BUILD_TYPE=Debug .. && make
