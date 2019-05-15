@@ -1,10 +1,6 @@
-naive
-usermgmt
-switchtest
-switchtest-nopie
-babyheap
-bm_*
-*-stripped
+test/*
+!test/*.c
+!test/*.prebuilt
 *.so
 *.o
 *.out
