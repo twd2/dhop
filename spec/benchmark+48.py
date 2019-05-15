@@ -6,6 +6,9 @@ class Allocator(allocator.AbstractAllocator):
   def __init__(self):
     super().__init__()
 
+  def loss(self):
+    return abs(+48 - (self.b_addr - self.a_addr))
+
   def _init(self):
     self.read_until(b'op? ')
 
