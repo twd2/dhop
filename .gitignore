@@ -1,6 +1,7 @@
 test/*
 !test/*.c
 !test/*.prebuilt
+!test/*.py
 *.so
 *.o
 *.out

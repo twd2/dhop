@@ -78,8 +78,8 @@ kill:
 .PHONY: clean
 clean:
 	-rm -r loop-finder/build
-	-rm test/*.o *.o *.so allocator/*/*.so
-	-cd test && ls | grep -vE '\.(c|prebuilt)$$' | xargs rm
+	-rm test/*.o *.o *.so allocator/*/*.so allocator/*/*.o
+	-cd test && ls | grep -vE '\.(c|prebuilt|py)$$' | xargs rm
 	-cd allocator/uClibc-ng-1.0.31 && make clean
 	-cd allocator/avr-libc-2.0.0 && make clean
 	-cd allocator/musl-1.1.22 && make clean
