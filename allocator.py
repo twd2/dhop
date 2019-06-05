@@ -33,6 +33,8 @@ class AbstractAllocator():
     self.full_trace = [] # TODO
     self.input_trace = []
     self.output_trace = []
+    self.a_ref = None
+    self.b_ref = None
     self.a_addr = 0x0
     self.b_addr = 0xffffffffffffffff
 
@@ -76,12 +78,12 @@ class AbstractAllocator():
 
   # the default rule
   def alloc_a(self, i, arg):
-    self.malloc(0, 32)
+    self.a_ref = self.malloc(0, 32)
     self.update_allocator_trace()
     self.a_addr = self.allocator_trace[-1][3]
 
   def alloc_b(self, i, arg):
-    self.malloc(0, 32)
+    self.b_ref = self.malloc(0, 32)
     self.update_allocator_trace()
     self.b_addr = self.allocator_trace[-1][3]
 

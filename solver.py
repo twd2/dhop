@@ -85,6 +85,13 @@ def write_results(result_dir, ator, ops, adj='', prefix='', write_full_trace=Fal
     with open('{}/{}opseq.txt'.format(result_dir, prefix), 'w') as f:
       opseq.dump_ops(f, ops)
     clog('ok', 'The {}operations sequence is written to {}/{}opseq.txt.', adj, result_dir, prefix)
+  if ator.a_ref != None or ator.b_ref != None:
+    with open('{}/{}ref.txt'.format(result_dir, prefix), 'w') as f:
+      if ator.a_ref != None:
+        f.write('The reference of the allocation A is {}.\n'.format(repr(ator.a_ref)))
+      if ator.b_ref != None:
+        f.write('The reference of the allocation B is {}.\n'.format(repr(ator.b_ref)))
+    clog('ok', 'The {}references are written to {}/{}ref.txt.', adj, result_dir, prefix)
   with open('{}/{}input.txt'.format(result_dir, prefix), 'wb') as f:
     f.write(b''.join(ator.input_trace))
   clog('ok', 'The {}input is written to {}/{}input.txt.', adj, result_dir, prefix)

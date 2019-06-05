@@ -40,15 +40,15 @@ class SpecGen():
                  '\n'
                  '  # TODO: You may rewrite the following function to define your alloc A.\n'
                  '  # def alloc_a(self, i, arg):\n'
-                 '  #   See allocator.py line 76.\n'
+                 '  #   See allocator.py line 80.\n'
                  '\n'
                  '  # TODO: You may rewrite the following function to define your alloc B.\n'
                  '  # def alloc_b(self, i, arg):\n'
-                 '  #   See allocator.py line 81.\n'
+                 '  #   See allocator.py line 85.\n'
                  '\n'
                  '  # TODO: You may rewrite the following function to define your loss function.\n'
                  '  # def loss(self):\n'
-                 '  #   See allocator.py line 86.\n'
+                 '  #   See allocator.py line 90.\n'
                  '\n')
     for i, code in enumerate(self.malloc_ops):
       parts.append('  def malloc{}(self, size):\n'.format(i))
